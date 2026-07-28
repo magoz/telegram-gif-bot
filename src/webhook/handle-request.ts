@@ -5,6 +5,9 @@ import { parseTelegramUpdate } from './parse-update'
 
 const SECRET_HEADER = 'x-telegram-bot-api-secret-token'
 
+export const isStartCommand = (text: string | undefined): boolean =>
+  text !== undefined && /^\/start(?:@givf_bot)?(?:\s|$)/i.test(text)
+
 const jsonResponse = (body: object, status: number): Response =>
   Response.json(body, { status, headers: { 'cache-control': 'no-store' } })
 
@@ -25,6 +28,10 @@ export const handleRequest = (request: Request) => {
 
     if (update.inline_query !== undefined) {
       yield* handleInlineQuery(update.inline_query)
+    }
+
+    if (update.message !== undefined && isStartCommand(update.message.text)) {
+      yield* telegram.sendStartMessage(update.message.chat.id)
     }
 
     return jsonResponse({ ok: true }, 200)

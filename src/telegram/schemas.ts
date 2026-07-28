@@ -14,9 +14,16 @@ export const TelegramInlineQuery = Schema.Struct({
 
 export type TelegramInlineQuery = typeof TelegramInlineQuery.Type
 
+const TelegramMessage = Schema.Struct({
+  message_id: Schema.Number,
+  chat: Schema.Struct({ id: Schema.Number }),
+  text: Schema.optionalKey(Schema.String)
+})
+
 export const TelegramUpdate = Schema.Struct({
   update_id: Schema.Number,
-  inline_query: Schema.optionalKey(TelegramInlineQuery)
+  inline_query: Schema.optionalKey(TelegramInlineQuery),
+  message: Schema.optionalKey(TelegramMessage)
 })
 
 export type TelegramUpdate = typeof TelegramUpdate.Type
@@ -43,6 +50,23 @@ export const TelegramInlineAnswer = Schema.Struct({
 })
 
 export type TelegramInlineAnswer = typeof TelegramInlineAnswer.Type
+
+export const TelegramStartMessage = Schema.Struct({
+  chat_id: Schema.Number,
+  text: Schema.String,
+  reply_markup: Schema.Struct({
+    inline_keyboard: Schema.Array(
+      Schema.Array(
+        Schema.Struct({
+          text: Schema.String,
+          switch_inline_query_current_chat: Schema.Literal('')
+        })
+      )
+    )
+  })
+})
+
+export type TelegramStartMessage = typeof TelegramStartMessage.Type
 
 export const TelegramApiSuccess = Schema.Struct({
   ok: Schema.Literal(true)

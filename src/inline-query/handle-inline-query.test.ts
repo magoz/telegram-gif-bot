@@ -23,6 +23,7 @@ it.effect('searches a trimmed query and answers with pagination', () => {
   }
   const telegram: TelegramShape = {
     authenticateWebhook: () => true,
+    sendStartMessage: () => Effect.die(new Error('Unexpected start message')),
     answerInlineQuery: value => {
       answer = value
       return Effect.void

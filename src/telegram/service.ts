@@ -5,6 +5,7 @@ import type { TelegramInlineAnswer } from './schemas'
 
 export type TelegramShape = {
   readonly authenticateWebhook: (secret: string | null) => boolean
+  readonly sendStartMessage: (chatId: number) => Effect.Effect<void, TelegramOperationError>
   readonly answerInlineQuery: (
     answer: TelegramInlineAnswer
   ) => Effect.Effect<void, TelegramOperationError>

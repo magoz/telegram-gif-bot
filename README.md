@@ -93,6 +93,9 @@ curl --fail-with-body \
 
 Then type `@your_bot cats` in any Telegram chat.
 
+Sending `/start` directly to the bot returns a **Search GIFs** button that opens inline mode in the
+current chat.
+
 ## Commands
 
 ```sh
