@@ -110,9 +110,9 @@ Telegram inline query
   -> verify Telegram secret header
   -> decode update with Effect Schema
   -> KLIPY search, or trending for an empty query
-  -> map HD MP4 + small JPEG thumbnail
+  -> map small MP4 + JPEG thumbnail
   -> Telegram answerInlineQuery
 ```
 
-Telegram offsets map to KLIPY page numbers. Answers contain 24 results, use per-user Telegram caching
+Telegram offsets map to KLIPY page numbers. Answers contain 8 results, use per-user Telegram caching
 for five minutes, and expose the next page only when KLIPY reports one.

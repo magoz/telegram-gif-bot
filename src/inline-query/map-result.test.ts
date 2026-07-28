@@ -29,13 +29,13 @@ const gif: KlipyGif = {
 }
 
 describe('KLIPY GIF mapping', () => {
-  it('uses HD MP4 media and small JPEG thumbnail', () => {
+  it('uses small MP4 media and JPEG thumbnail', () => {
     expect(mapKlipyGif(gif)).toEqual({
       type: 'mpeg4_gif',
       id: '42',
-      mpeg4_url: 'https://static.klipy.com/hello.mp4',
-      mpeg4_width: 640,
-      mpeg4_height: 360,
+      mpeg4_url: 'https://static.klipy.com/hello-small.mp4',
+      mpeg4_width: 320,
+      mpeg4_height: 180,
       thumbnail_url: 'https://static.klipy.com/hello-small.jpg',
       thumbnail_mime_type: 'image/jpeg',
       title: 'Hello'

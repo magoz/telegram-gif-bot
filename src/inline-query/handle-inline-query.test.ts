@@ -16,7 +16,7 @@ it.effect('searches a trimmed query and answers with pagination', () => {
       searched = request
       return Effect.succeed({
         result: true,
-        data: { data: [], current_page: 2, per_page: 24, has_next: true }
+        data: { data: [], current_page: 2, per_page: 8, has_next: true }
       })
     },
     trending: () => Effect.die(new Error('Unexpected trending request'))
