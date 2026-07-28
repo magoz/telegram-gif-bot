@@ -11,6 +11,8 @@ export type TelegramShape = {
   ) => Effect.Effect<void, TelegramOperationError>
 }
 
-export class Telegram extends Context.Service<Telegram, TelegramShape>()('@givf/Telegram') {
+export class Telegram extends Context.Service<Telegram, TelegramShape>()(
+  '@telegram-gif-bot/Telegram'
+) {
   static Live: Layer.Layer<Telegram, TelegramConfigError>
 }

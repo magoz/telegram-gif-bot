@@ -9,7 +9,7 @@ import { handleRequest, isStartCommand } from './handle-request'
 it('recognizes private and addressed start commands', () => {
   assert.strictEqual(isStartCommand('/start'), true)
   assert.strictEqual(isStartCommand('/start payload'), true)
-  assert.strictEqual(isStartCommand('/start@givf_bot'), true)
+  assert.strictEqual(isStartCommand('/start@gifklipybot'), true)
   assert.strictEqual(isStartCommand('/starter'), false)
   assert.strictEqual(isStartCommand(undefined), false)
 })

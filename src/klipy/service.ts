@@ -19,6 +19,6 @@ export type KlipyShape = {
   readonly trending: (request: KlipyRequest) => Effect.Effect<KlipyResponse, KlipyOperationError>
 }
 
-export class Klipy extends Context.Service<Klipy, KlipyShape>()('@givf/Klipy') {
+export class Klipy extends Context.Service<Klipy, KlipyShape>()('@telegram-gif-bot/Klipy') {
   static Live: Layer.Layer<Klipy, KlipyConfigError>
 }
