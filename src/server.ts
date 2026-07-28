@@ -16,4 +16,4 @@ Bun.serve({
   }
 })
 
-console.log(`ggif listening on http://localhost:${String(port)}/api/telegram`)
+console.log(`givf listening on http://localhost:${String(port)}/api/telegram`)

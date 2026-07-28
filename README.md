@@ -1,4 +1,4 @@
-# ggif
+# givf
 
 Telegram inline GIF bot backed by [KLIPY](https://klipy.com/). Type `@your_bot cats` in
 any Telegram chat, browse results, then send one.
