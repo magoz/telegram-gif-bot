@@ -5,6 +5,7 @@ export default defineConfig({
     tsconfigPaths: true
   },
   test: {
+    exclude: ['.vercel/**', 'node_modules/**'],
     coverage: {
       include: ['src/**/*.ts']
     }

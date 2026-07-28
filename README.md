@@ -5,7 +5,7 @@ any Telegram chat, browse results, then send one.
 
 ## Stack
 
-- TypeScript 7
+- TypeScript 6
 - Effect 4
 - Bun
 - Vercel Functions using the Bun runtime
@@ -66,7 +66,8 @@ use a tunnel for end-to-end local testing or deploy to Vercel.
 ## Deploy
 
 Create a Vercel project from this repository and add all three environment variables. The checked-in
-`vercel.json` enables Vercel's Bun runtime.
+`vercel.json` selects the framework-free Bun runtime. `bun install` bundles the Effect entrypoint
+into `api/telegram.js`, avoiding Vercel Bun's ESM linker issue with Effect's module graph.
 
 After deploying, register the production webhook. Replace placeholders without committing secrets:
 

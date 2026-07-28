@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:function": "bun build src/vercel.ts --target=bun --minify --outfile=api/telegram.js",
     "dev": "bun --watch src/server.ts",
     "start": "bun src/server.ts",
     "lint": "oxlint",
@@ -12,7 +13,8 @@
     "test:watch": "vitest",
     "format:check": "oxfmt --check",
     "format": "oxfmt",
-    "check": "bun run tsc && bun run lint && bun run format:check && bun run test"
+    "check": "bun run build:function && bun run tsc && bun run lint && bun run format:check && bun run test",
+    "postinstall": "bun run build:function"
   },
   "dependencies": {
     "effect": "4.0.0-beta.102"
@@ -24,7 +26,7 @@
     "oxfmt": "0.61.0",
     "oxlint": "1.76.0",
     "oxlint-tsgolint": "7.0.2001",
-    "typescript": "7.0.2",
+    "typescript": "6.0.3",
     "vitest": "4.1.10"
   },
   "packageManager": "bun@1.3.12"
