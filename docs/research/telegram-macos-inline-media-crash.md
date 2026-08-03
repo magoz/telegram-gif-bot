@@ -58,10 +58,12 @@ The diagnostic query mode held the search, item positions, result type, and JPEG
 | `otters`, identical positions immediately repeated               | Same URLs and metadata                          | Worked  |
 | `raccoons`, `xs`, positions 1–4 on first load                    | 0.351 MB                                        | Crashed |
 | `raccoons`, identical positions immediately repeated             | Same URLs and metadata                          | Worked  |
+| `badgers`, four cold `xs.gif` URLs + one warm fixed JPEG         | 0.838 MB GIF data, 162-byte shared thumbnail    | Crashed |
+| `badgers`, identical positions immediately repeated              | Same URLs and fixed thumbnail                   | Worked  |
 
 The controlled crashes produced reports at 21:16, 21:28, 21:36, 21:38, and 21:41 on August 3. The inspected reports were again `EXC_BAD_ACCESS` / `SIGBUS` stack-guard failures on `MediaBox-Data`.
 
-These comparisons rule out a deterministic malformed asset or a simple threshold based on count, compressed bytes, frames, duration, or decoded pixels. The same remote URLs changing from crash to success immediately after warming is direct evidence that fetch/cache timing and synchronous media-resource recursion are essential to the trigger. The 351 KB `xs.gif` failure also shows that reducing payload size only lowers probability.
+These comparisons rule out a deterministic malformed asset or a simple threshold based on count, compressed bytes, frames, duration, or decoded pixels. The same remote URLs changing from crash to success immediately after warming is direct evidence that fetch/cache timing and synchronous media-resource recursion are essential to the trigger. The 351 KB `xs.gif` failure shows that reducing payload size only lowers probability. The `badgers` test used one already-warm 162-byte JPEG for all four results, proving that cold GIF-resource fetching is sufficient and provider thumbnail fetching is not necessary.
 
 ## Original crashing payload
 
@@ -202,9 +204,10 @@ Normal inline searches remain on the lowest-risk `xs.gif` payload. Diagnostic qu
 
 ```text
 !test <xs|sm> [fixed] <start 1-50> <count 1-50> <search query>
+!cold <xs|sm> <start 1-50> <count 1-50> <search query>
 ```
 
-The diagnostic mode always requests KLIPY page 1, selects the specified contiguous subset, disables pagination, gives every result a rendition-and-position-specific ID, and logs GIF and thumbnail metadata. The optional `fixed` token replaces all provider thumbnails with one 162-byte JPEG so animation and thumbnail cold-fetch behavior can be separated. Incomplete or invalid `!test` commands return no media instead of accidentally running an uncontrolled search.
+The diagnostic mode always requests KLIPY page 1, selects the specified contiguous subset, disables pagination, gives every result a rendition-and-position-specific ID, and logs GIF and thumbnail metadata. The optional `fixed` token replaces all provider thumbnails with one 162-byte JPEG so animation and thumbnail cold-fetch behavior can be separated. The `!cold` form uses that fixed thumbnail and appends a unique per-query cache key to every GIF URL, forcing identical content through Telegram's cold-fetch path repeatedly. Incomplete or invalid diagnostic commands return no media instead of accidentally running an uncontrolled search.
 
 Use one fixed search term and proceed in this order:
 
@@ -279,21 +282,22 @@ Also post the issue link in Telegram's official native-macOS beta/report chat, b
 
 ## Test matrix and status
 
-| Case | Result count | Media                                           | Status / purpose                                                |
-| ---- | -----------: | ----------------------------------------------- | --------------------------------------------------------------- |
-| A    |           24 | remote `sm.mp4` as `mpeg4_gif`                  | Failed: crashed                                                 |
-| B    |            8 | remote `sm.mp4` as `mpeg4_gif` + JPEG thumbnail | Failed: crashed                                                 |
-| C    |            8 | remote `xs.gif` as `gif` + JPEG thumbnail       | Passed in observed testing                                      |
-| D    |           50 | remote `xs.gif` as `gif` + JPEG thumbnail       | Passed in observed testing                                      |
-| E    |            1 | fixed soundless `sm.mp4`                        | Deferred; isolate MP4 path if crashes recur                     |
-| F    |            1 | fixed `sm.mp4` with silent AAC                  | Deferred; isolate audio-track effect                            |
-| G    |            8 | JPEG-only article/photo results                 | Deferred; determine whether thumbnail fan-out alone triggers it |
-| H    |            8 | cached Telegram `file_id` animations            | Deferred; separate remote fetching from animation playback      |
-| I    |           50 | remote `sm.gif` as `gif` + JPEG thumbnail       | Failed: animated previews loaded, then Telegram Mac crashed     |
-| J    |          1–5 | controlled cold `sm.gif` subsets                | Mixed: two subsets crashed only while media were newly fetched  |
-| K    |          4–5 | exact previously crashing `sm.gif` subsets warm | Passed unchanged after every URL had loaded independently       |
-| L    |            4 | cold `xs.gif` + provider JPEG thumbnails        | Failed once at only 351 KB; identical warm repeat passed        |
-| M    |          1–4 | fixed 162-byte JPEG thumbnail isolation         | In progress                                                     |
+| Case | Result count | Media                                           | Status / purpose                                                    |
+| ---- | -----------: | ----------------------------------------------- | ------------------------------------------------------------------- |
+| A    |           24 | remote `sm.mp4` as `mpeg4_gif`                  | Failed: crashed                                                     |
+| B    |            8 | remote `sm.mp4` as `mpeg4_gif` + JPEG thumbnail | Failed: crashed                                                     |
+| C    |            8 | remote `xs.gif` as `gif` + JPEG thumbnail       | Passed in observed testing                                          |
+| D    |           50 | remote `xs.gif` as `gif` + JPEG thumbnail       | Passed in observed testing                                          |
+| E    |            1 | fixed soundless `sm.mp4`                        | Deferred; isolate MP4 path if crashes recur                         |
+| F    |            1 | fixed `sm.mp4` with silent AAC                  | Deferred; isolate audio-track effect                                |
+| G    |            8 | JPEG-only article/photo results                 | Deferred; determine whether thumbnail fan-out alone triggers it     |
+| H    |            8 | cached Telegram `file_id` animations            | Deferred; separate remote fetching from animation playback          |
+| I    |           50 | remote `sm.gif` as `gif` + JPEG thumbnail       | Failed: animated previews loaded, then Telegram Mac crashed         |
+| J    |          1–5 | controlled cold `sm.gif` subsets                | Mixed: two subsets crashed only while media were newly fetched      |
+| K    |          4–5 | exact previously crashing `sm.gif` subsets warm | Passed unchanged after every URL had loaded independently           |
+| L    |            4 | cold `xs.gif` + provider JPEG thumbnails        | Failed once at only 351 KB; identical warm repeat passed            |
+| M    |          1–4 | fixed 162-byte JPEG thumbnail isolation         | Cold GIFs crashed with a warm fixed thumbnail; thumbnails ruled out |
+| N    |          1–4 | per-query cache-busted GIF URLs                 | In progress                                                         |
 
 Do not rely on Telegram's five-minute inline cache while testing: change result IDs or temporarily set a very low cache time so each case is actually refreshed.
 

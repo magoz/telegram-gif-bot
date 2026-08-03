@@ -45,6 +45,7 @@ export const handleInlineQuery = (inlineQuery: TelegramInlineQuery) =>
       yield* Effect.logInfo('Inline media experiment', {
         rendition: experiment.rendition,
         thumbnailMode: experiment.thumbnailMode,
+        forceCold: experiment.forceCold,
         start: experiment.start,
         count: experiment.count,
         query: experiment.query,
@@ -74,7 +75,8 @@ export const handleInlineQuery = (inlineQuery: TelegramInlineQuery) =>
           : mapKlipyGif(gif, {
               rendition: experiment.rendition,
               thumbnailMode: experiment.thumbnailMode,
-              idPrefix: `test-${experiment.rendition}-${experiment.thumbnailMode}-${experiment.start + index}-${inlineQuery.id.slice(-12)}`
+              ...(experiment.forceCold ? { mediaCacheKey: inlineQuery.id } : {}),
+              idPrefix: `test-${experiment.forceCold ? 'cold' : 'reuse'}-${experiment.rendition}-${experiment.thumbnailMode}-${experiment.start + index}-${inlineQuery.id.slice(-12)}`
             })
       ),
       cache_time: CACHE_TIME_SECONDS,

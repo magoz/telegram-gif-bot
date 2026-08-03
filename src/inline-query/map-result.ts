@@ -7,6 +7,7 @@ export const FIXED_THUMBNAIL_URL = 'https://telegram-gif-bot.vercel.app/inline-t
 type MapKlipyGifOptions = {
   readonly rendition?: GifRendition
   readonly thumbnailMode?: ThumbnailMode
+  readonly mediaCacheKey?: string
   readonly idPrefix?: string
 }
 
@@ -20,11 +21,15 @@ export const mapKlipyGif = (
     options.idPrefix === undefined
       ? String(gif.id)
       : `${options.idPrefix}-${String(gif.id)}`.slice(0, 64)
+  const mediaUrl =
+    options.mediaCacheKey === undefined
+      ? media.url
+      : `${media.url}${media.url.includes('?') ? '&' : '?'}inline_test=${encodeURIComponent(options.mediaCacheKey)}`
 
   return {
     type: 'gif',
     id,
-    gif_url: media.url,
+    gif_url: mediaUrl,
     gif_width: media.width,
     gif_height: media.height,
     thumbnail_url: options.thumbnailMode === 'fixed' ? FIXED_THUMBNAIL_URL : gif.file.sm.jpg.url,

@@ -106,8 +106,8 @@ it.effect('runs a bounded rendition experiment on page one without pagination', 
     assert.deepStrictEqual(
       answer?.results.map(result => ({ id: result.id, url: result.gif_url })),
       [
-        { id: 'test-sm-provider-2-inline-test-2', url: 'https://cdn.example/2-sm.gif' },
-        { id: 'test-sm-provider-3-inline-test-3', url: 'https://cdn.example/3-sm.gif' }
+        { id: 'test-reuse-sm-provider-2-inline-test-2', url: 'https://cdn.example/2-sm.gif' },
+        { id: 'test-reuse-sm-provider-3-inline-test-3', url: 'https://cdn.example/3-sm.gif' }
       ]
     )
   }).pipe(Effect.provide(TestLayer))

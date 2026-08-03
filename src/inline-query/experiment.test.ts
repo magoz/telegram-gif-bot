@@ -16,6 +16,7 @@ describe('inline media experiment query', () => {
       kind: 'experiment',
       rendition: 'sm',
       thumbnailMode: 'provider',
+      forceCold: false,
       start: 5,
       count: 8,
       query: 'cats'
@@ -27,16 +28,34 @@ describe('inline media experiment query', () => {
       kind: 'experiment',
       rendition: 'xs',
       thumbnailMode: 'fixed',
+      forceCold: false,
       start: 1,
       count: 4,
       query: 'raccoons'
     })
   })
 
-  it.each(['!test', '!test sm', '!test md 1 1 cats', '!test sm 0 1 cats', '!test sm 50 2 cats'])(
-    'treats an incomplete or invalid experiment as pending: %s',
-    query => {
-      expect(parseInlineQuery(query)).toEqual({ kind: 'pending-experiment' })
-    }
-  )
+  it('parses cache-busted GIFs with a fixed thumbnail', () => {
+    expect(parseInlineQuery('!cold xs 1 4 badgers')).toEqual({
+      kind: 'experiment',
+      rendition: 'xs',
+      thumbnailMode: 'fixed',
+      forceCold: true,
+      start: 1,
+      count: 4,
+      query: 'badgers'
+    })
+  })
+
+  it.each([
+    '!test',
+    '!test sm',
+    '!cold',
+    '!cold xs',
+    '!test md 1 1 cats',
+    '!test sm 0 1 cats',
+    '!test sm 50 2 cats'
+  ])('treats an incomplete or invalid experiment as pending: %s', query => {
+    expect(parseInlineQuery(query)).toEqual({ kind: 'pending-experiment' })
+  })
 })

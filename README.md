@@ -134,19 +134,22 @@ fixed subset from the first KLIPY page without changing the normal bot behavior:
 
 ```text
 !test <xs|sm> [fixed] <start> <count> <search query>
+!cold <xs|sm> <start> <count> <search query>
 ```
 
 For example, `!test sm 1 1 cats` returns only the first `cats` result using `sm.gif`, while
 `!test xs 1 1 cats` returns the same item using `xs.gif`. Add the optional `fixed` token to replace
 all provider thumbnails with one 162-byte JPEG, allowing GIF and thumbnail fetches to be tested
-independently. `start` and `count` are 1-based, bounded to the first 50 results, and diagnostic answers
-never paginate. Each diagnostic result receives a fresh ID, and the server logs GIF and thumbnail
-metadata.
+independently. The `!cold` form always uses that fixed thumbnail and adds a per-query cache key to
+each GIF URL, allowing the same content to be forced through Telegram's cold-fetch path repeatedly.
+`start` and `count` are 1-based, bounded to the first 50 results, and diagnostic answers never
+paginate. Each diagnostic result receives a fresh ID, and the server logs GIF and thumbnail metadata.
 
 These commands are intentionally capable of reproducing the Telegram macOS crash. Begin with one
 result and increase geometrically only after each previous case is stable. Controlled testing found
 that two exact `sm.gif` URL sets crashed when newly introduced media were fetched, then worked
 unchanged after those URLs had loaded independently. This rules out a deterministic file, count, or
 simple byte/frame/pixel threshold and identifies Telegram Mac's concurrent cold `MediaBox` fetch/cache
-path as the practical trigger. Normal searches remain on `xs.gif` because it has the lowest observed
-crash frequency, although one controlled cold-cache `xs.gif` group also reproduced the bug.
+path as the practical trigger. Four cold `xs.gif` URLs also crashed with one already-warm fixed
+thumbnail, ruling out provider thumbnail fetching as necessary. Normal searches remain on `xs.gif`
+because it has the lowest observed crash frequency, not because it is immune.

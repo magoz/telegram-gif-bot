@@ -64,4 +64,10 @@ describe('KLIPY GIF mapping', () => {
       'https://telegram-gif-bot.vercel.app/inline-test-thumbnail.jpg'
     )
   })
+
+  it('can force a cold media URL with a per-query cache key', () => {
+    expect(mapKlipyGif(gif, { mediaCacheKey: 'inline/query' }).gif_url).toBe(
+      'https://static.klipy.com/hello-extra-small.gif?inline_test=inline%2Fquery'
+    )
+  })
 })
