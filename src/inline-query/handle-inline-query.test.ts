@@ -100,39 +100,6 @@ it.effect('does not launch media while an experiment command is incomplete', () 
   }).pipe(Effect.provide(TestLayer))
 })
 
-it.effect('returns Telegram-hosted cached GIF results without calling KLIPY', () => {
-  let answer: TelegramInlineAnswer | undefined
-  const klipy: KlipyShape = {
-    search: () => Effect.die(new Error('Unexpected search')),
-    trending: () => Effect.die(new Error('Unexpected trending request'))
-  }
-  const telegram: TelegramShape = {
-    authenticateWebhook: () => true,
-    sendStartMessage: () => Effect.die(new Error('Unexpected start message')),
-    answerInlineQuery: value => {
-      answer = value
-      return Effect.void
-    }
-  }
-  const TestLayer = Layer.merge(Layer.succeed(Klipy, klipy), Layer.succeed(Telegram, telegram))
-
-  return Effect.gen(function* () {
-    yield* handleInlineQuery({
-      id: 'inline-cached',
-      from: { id: 789 },
-      query: '!cached ::go',
-      offset: ''
-    })
-
-    assert.strictEqual(answer?.next_offset, '')
-    assert.deepStrictEqual(
-      answer?.results.map(result => result.id),
-      ['cached-1', 'cached-2']
-    )
-    assert.strictEqual('gif_file_id' in (answer?.results[0] ?? {}), true)
-  }).pipe(Effect.provide(TestLayer))
-})
-
 it.effect('runs a bounded rendition experiment on page one without pagination', () => {
   let answer: TelegramInlineAnswer | undefined
   const klipy: KlipyShape = {
@@ -171,10 +138,7 @@ it.effect('runs a bounded rendition experiment on page one without pagination', 
     assert.strictEqual(answer?.next_offset, '')
     assert.strictEqual(answer?.results.length, 2)
     assert.deepStrictEqual(
-      answer?.results.map(result => ({
-        id: result.id,
-        url: 'gif_url' in result ? result.gif_url : undefined
-      })),
+      answer?.results.map(result => ({ id: result.id, url: result.gif_url })),
       [
         { id: 'test-reuse-sm-provider-2-2', url: 'https://cdn.example/2-sm.gif' },
         { id: 'test-reuse-sm-provider-3-3', url: 'https://cdn.example/3-sm.gif' }

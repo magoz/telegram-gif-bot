@@ -14,20 +14,10 @@ export const TelegramInlineQuery = Schema.Struct({
 
 export type TelegramInlineQuery = typeof TelegramInlineQuery.Type
 
-const TelegramAnimation = Schema.Struct({
-  file_id: Schema.String,
-  file_unique_id: Schema.String,
-  width: Schema.Number,
-  height: Schema.Number,
-  duration: Schema.Number,
-  file_size: Schema.optionalKey(Schema.Number)
-})
-
 const TelegramMessage = Schema.Struct({
   message_id: Schema.Number,
   chat: Schema.Struct({ id: Schema.Number }),
-  text: Schema.optionalKey(Schema.String),
-  animation: Schema.optionalKey(TelegramAnimation)
+  text: Schema.optionalKey(Schema.String)
 })
 
 export const TelegramUpdate = Schema.Struct({
@@ -38,7 +28,7 @@ export const TelegramUpdate = Schema.Struct({
 
 export type TelegramUpdate = typeof TelegramUpdate.Type
 
-const TelegramRemoteGifInlineResult = Schema.Struct({
+export const TelegramInlineResult = Schema.Struct({
   type: Schema.Literal('gif'),
   id: Schema.String,
   gif_url: Schema.String,
@@ -48,20 +38,6 @@ const TelegramRemoteGifInlineResult = Schema.Struct({
   thumbnail_mime_type: Schema.Literal('image/jpeg'),
   title: Schema.String
 })
-
-export type TelegramRemoteGifInlineResult = typeof TelegramRemoteGifInlineResult.Type
-
-const TelegramCachedGifInlineResult = Schema.Struct({
-  type: Schema.Literal('gif'),
-  id: Schema.String,
-  gif_file_id: Schema.String,
-  title: Schema.String
-})
-
-export const TelegramInlineResult = Schema.Union([
-  TelegramRemoteGifInlineResult,
-  TelegramCachedGifInlineResult
-])
 
 export type TelegramInlineResult = typeof TelegramInlineResult.Type
 

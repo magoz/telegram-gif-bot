@@ -1,27 +1,12 @@
 import { Effect } from 'effect'
 import { Klipy } from '@/klipy/service'
 import { Telegram } from '@/telegram/service'
-import type { TelegramInlineQuery, TelegramInlineResult } from '@/telegram/schemas'
+import type { TelegramInlineQuery } from '@/telegram/schemas'
 import { parseInlineQuery } from './experiment'
 import { FIXED_THUMBNAIL_URL, mapKlipyGif } from './map-result'
 import { nextOffset, pageFromOffset } from './pagination'
 
 const CACHE_TIME_SECONDS = 0
-
-const cachedExperimentResults = (): Array<TelegramInlineResult> => [
-  {
-    type: 'gif',
-    id: 'cached-1',
-    gif_file_id: 'CgACAgQAAxkBAAMNanD_nTMqGLGH8ebSO5W4mfc3CL0AAp8LAAIWEo1Tx9DjMfnKI_Y9BA',
-    title: 'Cached GIF 1'
-  },
-  {
-    type: 'gif',
-    id: 'cached-2',
-    gif_file_id: 'CgACAgQAAxkBAAMOanD_pyt_dfzx09Gb3Y3IVu2A74EAAnALAAL_1oxTQc1o4bJXASo9BA',
-    title: 'Cached GIF 2'
-  }
-]
 
 export const handleInlineQuery = (inlineQuery: TelegramInlineQuery) =>
   Effect.gen(function* () {
@@ -33,18 +18,6 @@ export const handleInlineQuery = (inlineQuery: TelegramInlineQuery) =>
       yield* telegram.answerInlineQuery({
         inline_query_id: inlineQuery.id,
         results: [],
-        cache_time: CACHE_TIME_SECONDS,
-        is_personal: true,
-        next_offset: ''
-      })
-      return
-    }
-
-    if (parsedQuery.kind === 'cached-experiment') {
-      yield* Effect.logInfo('Inline Telegram-cached media experiment')
-      yield* telegram.answerInlineQuery({
-        inline_query_id: inlineQuery.id,
-        results: cachedExperimentResults(),
         cache_time: CACHE_TIME_SECONDS,
         is_personal: true,
         next_offset: ''
