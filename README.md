@@ -120,4 +120,7 @@ Telegram inline query
 Telegram offsets map to KLIPY page numbers. Answers contain up to 50 results and expose the next page only
 when KLIPY reports one. During the Telegram macOS stability experiment, answers are not cached and
 use KLIPY's `xs.gif` rendition instead of provider MP4s to exercise Telegram's actual-GIF ingestion
-path.
+path. Local testing on Telegram for macOS 12.9 has shown no crashes with either 8 or 50 results,
+whereas the previous remote-MP4 payload crashed at both 24 and 8 results. See
+[`docs/research/telegram-macos-inline-media-crash.md`](docs/research/telegram-macos-inline-media-crash.md)
+for the evidence and experiment history.
