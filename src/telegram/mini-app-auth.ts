@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { Option, Schema } from 'effect'
 
-const MAX_AUTH_AGE_SECONDS = 5 * 60
+const MAX_AUTH_AGE_SECONDS = 24 * 60 * 60
 const MAX_FUTURE_SKEW_SECONDS = 30
 const MAX_INIT_DATA_BYTES = 16 * 1024
 

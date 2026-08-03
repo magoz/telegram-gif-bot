@@ -41,7 +41,7 @@ describe('Telegram Mini App init data authentication', () => {
   it('rejects stale and implausibly future auth dates', () => {
     expect(
       authenticateMiniAppInitData(
-        signedInitData({ ...validValues, auth_date: String(NOW - 301) }),
+        signedInitData({ ...validValues, auth_date: String(NOW - 86_401) }),
         BOT_TOKEN,
         NOW
       )

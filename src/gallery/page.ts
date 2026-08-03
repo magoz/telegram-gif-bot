@@ -118,10 +118,7 @@ export const galleryPage = `<!doctype html>
       var state = { query: initialQuery, page: 1, hasNext: true, loading: false, generation: 0 }
 
       input.value = initialQuery
-      if (webApp) {
-        webApp.ready()
-        webApp.expand()
-      }
+      if (webApp) webApp.ready()
 
       function setStatus(message) {
         status.textContent = message
@@ -198,7 +195,7 @@ export const galleryPage = `<!doctype html>
             },
             body: JSON.stringify({ query: state.query, page: state.page })
           })
-          if (!response.ok) throw new Error(response.status === 401 ? 'Telegram authorization expired. Close and reopen the gallery.' : 'Unable to load GIFs.')
+          if (!response.ok) throw new Error(response.status === 401 ? 'Telegram authorization could not be verified. Close and reopen the gallery.' : 'Unable to load GIFs.')
           var payload = await response.json()
           if (generation !== state.generation) return
 
