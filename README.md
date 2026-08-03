@@ -113,15 +113,16 @@ Telegram inline query
   -> verify Telegram secret header
   -> decode update with Effect Schema
   -> KLIPY search, or trending for an empty query
-  -> map the small actual GIF + a static JPEG thumbnail
+  -> map the smallest actual GIF + a static JPEG thumbnail
   -> Telegram answerInlineQuery
 ```
 
 Telegram offsets map to KLIPY page numbers. Answers contain up to 50 results and expose the next page only
-when KLIPY reports one. During the Telegram macOS stability experiment, answers are not cached. The
-confirmed stable baseline used KLIPY's `xs.gif` rendition instead of provider MP4s and showed no
-crashes with either 8 or 50 results on Telegram for macOS 12.9, whereas the previous remote-MP4
-payload crashed at both 24 and 8 results. The current follow-up tests `sm.gif` for higher-quality sent
-animations while retaining the static JPEG thumbnail. See
+when KLIPY reports one. During the Telegram macOS stability experiment, answers are not cached and
+use KLIPY's `xs.gif` rendition instead of provider MP4s to exercise Telegram's actual-GIF ingestion
+path. Local testing on Telegram for macOS 12.9 has shown no crashes with either 8 or 50 `xs.gif`
+results, whereas the previous remote-MP4 payload crashed at both 24 and 8 results. A follow-up with
+50 larger `sm.gif` results also crashed; despite the static JPEG thumbnail, the gallery tiles moved,
+confirming that Telegram fetches `gif_url` for animated previews. See
 [`docs/research/telegram-macos-inline-media-crash.md`](docs/research/telegram-macos-inline-media-crash.md)
 for the evidence and experiment history.

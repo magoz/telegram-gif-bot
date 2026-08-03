@@ -11,30 +11,30 @@ The local Telegram crash reports show a deterministic **stack overflow / excessi
 
 There is also one concrete defect in the original payloads: some KLIPY MP4 renditions contain a silent AAC track, while Telegram defines `InlineQueryResultMpeg4Gif` as H.264/MPEG-4 AVC **without sound**. That should be fixed, but the crash stack does not prove that it is the recursion trigger.
 
-The current mitigation—returning KLIPY's smallest actual GIF rendition as `InlineQueryResultGif`—has shown **no crashes in local testing**, including answers containing the Telegram maximum of 50 results. This is strong practical evidence that the remote-MP4/MPEG4-GIF ingestion path was the important trigger, rather than result count alone. The observation period is still short and does not prove the Telegram client bug is fixed.
+The current mitigation—returning KLIPY's smallest actual GIF rendition as `InlineQueryResultGif`—has shown **no crashes in local testing**, including answers containing the Telegram maximum of 50 results. A controlled follow-up changed only the sent rendition from `xs.gif` to `sm.gif`; the animated gallery still worked, but Telegram Mac crashed again. This establishes that result count alone is not the trigger and that keeping the fetched animation small is important. The observation period is still short and does not prove the Telegram client bug is fixed.
 
 ## Outcome update: working mitigation
 
 The following sequence was tested on Telegram for macOS 12.9 build 282555:
 
-| Experiment                                                          | Result                                                                                                      |
-| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| 24 remote `sm.mp4` items as `mpeg4_gif`                             | Crashed                                                                                                     |
-| 8 remote `sm.mp4` items as `mpeg4_gif` with static JPEG thumbnails  | Still crashed                                                                                               |
-| Inline-mode Mini App gallery                                        | Avoided the native grid, but Telegram Mac opened it in a separate in-app window; rejected as the desired UX |
-| 8 remote `xs.gif` items as `gif` with static JPEG thumbnails        | No crash observed                                                                                           |
-| Up to 50 remote `xs.gif` items as `gif` with static JPEG thumbnails | No crash observed; reported as working perfectly                                                            |
+| Experiment                                                          | Result                                                                                                       |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 24 remote `sm.mp4` items as `mpeg4_gif`                             | Crashed                                                                                                      |
+| 8 remote `sm.mp4` items as `mpeg4_gif` with static JPEG thumbnails  | Still crashed                                                                                                |
+| Inline-mode Mini App gallery                                        | Avoided the native grid, but Telegram Mac opened it in a separate in-app window; rejected as the desired UX  |
+| 8 remote `xs.gif` items as `gif` with static JPEG thumbnails        | No crash observed                                                                                            |
+| Up to 50 remote `xs.gif` items as `gif` with static JPEG thumbnails | No crash observed; reported as working perfectly                                                             |
+| Up to 50 remote `sm.gif` items as `gif` with static JPEG thumbnails | Crashed; the gallery tiles were animated, proving Telegram fetched the larger `gif_url` for preview playback |
 
 One test briefly showed blank result slots for some items. That may be an individual GIF or thumbnail fetch/decoding failure and has not been reproduced or diagnosed. It did not cause a crash.
 
-Commits recording the successful change:
+Commits recording the experiments:
 
 - `d40ff01`: remove the Mini App and return actual `xs.gif` inline results;
-- `b5443f9`: raise the page size from 8 to Telegram's maximum of 50.
+- `b5443f9`: raise the page size from 8 to Telegram's maximum of 50;
+- `4160d60`: test `sm.gif` as the selected media; reverted after it crashed Telegram Mac.
 
 During testing, `cache_time` is `0` so repeated queries exercise the current payload instead of an older cached answer.
-
-A follow-up experiment now uses `sm.gif` as `gif_url` to improve the animation sent after selection, while retaining `sm.jpg` as the static thumbnail. Telegram does not provide a guaranteed GIF-only mechanism for a low-resolution animated preview and a separate high-resolution send: GIF/JPEG thumbnails are documented as static, while animated thumbnails must be MPEG-4. The client may therefore fetch `sm.gif` to animate the gallery as well as to send it. This experiment must be compared against the confirmed-stable `xs.gif` baseline.
 
 ## Original crashing payload
 
@@ -49,9 +49,9 @@ The thumbnail fields were valid: Telegram permits JPEG thumbnails and makes `mpe
 
 Telegram's own GIF documentation likewise says Telegram GIFs are soundless H.264 MPEG-4 videos and that uploaded GIF images are converted to MPEG-4.[^telegram-gifs]
 
-## Confirmed stable payload and current experiment
+## Current working payload
 
-The confirmed-stable payload requests `gif,jpg` from KLIPY and maps each item to:
+The bot now requests `gif,jpg` from KLIPY and maps each item to:
 
 - `type: "gif"` (`InlineQueryResultGif`);
 - KLIPY `file.xs.gif` as `gif_url`;
@@ -59,7 +59,9 @@ The confirmed-stable payload requests `gif,jpg` from KLIPY and maps each item to
 - KLIPY `file.sm.jpg` as a static JPEG thumbnail;
 - up to 50 results per answer, with normal offset pagination.[^bot-api-gif]
 
-The current higher-quality experiment changes only `gif_url` and its dimensions from `file.xs.gif` to `file.sm.gif`. This keeps the animated native inline gallery and normal one-tap send behavior while avoiding KLIPY's provider MP4 stream layout and audio-track defect. It does not guarantee that Telegram previews the smaller rendition; the Bot API uses `gif_url` as the selected media and permits only MPEG-4 thumbnails to be animated.
+This keeps the animated native inline gallery and the normal one-tap send behavior while avoiding KLIPY's provider MP4 stream layout and the larger `sm.gif` payload that also reproduced the crash.
+
+The `sm.gif` experiment also answered the preview/send question: although `thumbnail_url` remained the static `sm.jpg`, gallery tiles were animated. Telegram therefore fetched `gif_url` for animated preview playback. The standard GIF inline-result type offers no separate low-resolution animated GIF preview URL, so it cannot preview `xs.gif` while sending `sm.gif` without introducing an MPEG-4 animated thumbnail or a nonstandard post-send replacement flow.
 
 ## Local crash evidence
 
@@ -171,7 +173,7 @@ The audited files are small, dimensions match metadata, all decode, and all are 
 
 ### Keep and monitor the current mitigation
 
-Test KLIPY `file.sm.gif` through `InlineQueryResultGif` with the existing static JPEG thumbnail. Compare sent quality, gallery loading, blank slots, and crash behavior against the confirmed-stable `xs.gif` baseline. Revert to `xs.gif` immediately if crashes or unacceptable loading return.
+Continue using KLIPY `file.xs.gif` through `InlineQueryResultGif` with a static JPEG thumbnail. This is currently the best combination of native inline UX and observed stability.
 
 Before treating the result as conclusive:
 
@@ -191,7 +193,7 @@ A 32-result audit of the same searches found:
 - `xs.gif`: 6,690–461,852 bytes; median 78,989; none over 1 MiB
 - `sm.gif`: 20,511–1,293,655 bytes; median 271,414; 2/32 over 1 MiB
 
-The `xs.gif` variant is conservative for a diagnostic. Telegram documents that actual GIF uploads are converted to soundless MP4, so this also avoids trusting KLIPY's MP4 stream layout.[^telegram-gifs] It changes both the media type and client ingestion path, so compare crash behavior before deciding whether its lower quality is acceptable.
+The `xs.gif` variant is now the required stability workaround. Telegram documents that actual GIF uploads are converted to soundless MP4, so it also avoids trusting KLIPY's MP4 stream layout.[^telegram-gifs] The larger `sm.gif` rendition reproduced the crash, so do not upgrade the selected media without repeating the crash test at progressively smaller result counts.
 
 ### If MP4 is retained
 
@@ -238,7 +240,7 @@ Also post the issue link in Telegram's official native-macOS beta/report chat, b
 | F    |            1 | fixed `sm.mp4` with silent AAC                  | Deferred; isolate audio-track effect                            |
 | G    |            8 | JPEG-only article/photo results                 | Deferred; determine whether thumbnail fan-out alone triggers it |
 | H    |            8 | cached Telegram `file_id` animations            | Deferred; separate remote fetching from animation playback      |
-| I    |           50 | remote `sm.gif` as `gif` + JPEG thumbnail       | In progress; test higher-quality sends and gallery stability    |
+| I    |           50 | remote `sm.gif` as `gif` + JPEG thumbnail       | Failed: animated previews loaded, then Telegram Mac crashed     |
 
 Do not rely on Telegram's five-minute inline cache while testing: change result IDs or temporarily set a very low cache time so each case is actually refreshed.
 
