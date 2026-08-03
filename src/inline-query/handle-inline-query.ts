@@ -3,7 +3,7 @@ import { Klipy } from '@/klipy/service'
 import { Telegram } from '@/telegram/service'
 import type { TelegramInlineQuery } from '@/telegram/schemas'
 import { parseInlineQuery } from './experiment'
-import { mapKlipyGif } from './map-result'
+import { FIXED_THUMBNAIL_URL, mapKlipyGif } from './map-result'
 import { nextOffset, pageFromOffset } from './pagination'
 
 const CACHE_TIME_SECONDS = 0
@@ -44,6 +44,7 @@ export const handleInlineQuery = (inlineQuery: TelegramInlineQuery) =>
     if (experiment !== undefined) {
       yield* Effect.logInfo('Inline media experiment', {
         rendition: experiment.rendition,
+        thumbnailMode: experiment.thumbnailMode,
         start: experiment.start,
         count: experiment.count,
         query: experiment.query,
@@ -55,7 +56,11 @@ export const handleInlineQuery = (inlineQuery: TelegramInlineQuery) =>
             url: media.url,
             width: media.width,
             height: media.height,
-            size: media.size
+            size: media.size,
+            thumbnail:
+              experiment.thumbnailMode === 'fixed'
+                ? { url: FIXED_THUMBNAIL_URL, size: 162 }
+                : gif.file.sm.jpg
           }
         })
       })
@@ -66,11 +71,11 @@ export const handleInlineQuery = (inlineQuery: TelegramInlineQuery) =>
       results: selectedGifs.map((gif, index) =>
         experiment === undefined
           ? mapKlipyGif(gif)
-          : mapKlipyGif(
-              gif,
-              experiment.rendition,
-              `test-${experiment.rendition}-${experiment.start + index}-${inlineQuery.id.slice(-12)}`
-            )
+          : mapKlipyGif(gif, {
+              rendition: experiment.rendition,
+              thumbnailMode: experiment.thumbnailMode,
+              idPrefix: `test-${experiment.rendition}-${experiment.thumbnailMode}-${experiment.start + index}-${inlineQuery.id.slice(-12)}`
+            })
       ),
       cache_time: CACHE_TIME_SECONDS,
       is_personal: true,

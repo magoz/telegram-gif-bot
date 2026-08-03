@@ -15,9 +15,21 @@ describe('inline media experiment query', () => {
     expect(parseInlineQuery('!test sm 5 8 cats')).toEqual({
       kind: 'experiment',
       rendition: 'sm',
+      thumbnailMode: 'provider',
       start: 5,
       count: 8,
       query: 'cats'
+    })
+  })
+
+  it('parses the fixed-thumbnail isolation mode', () => {
+    expect(parseInlineQuery('!test xs fixed 1 4 raccoons')).toEqual({
+      kind: 'experiment',
+      rendition: 'xs',
+      thumbnailMode: 'fixed',
+      start: 1,
+      count: 4,
+      query: 'raccoons'
     })
   })
 

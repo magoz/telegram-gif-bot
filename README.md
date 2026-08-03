@@ -120,10 +120,10 @@ Telegram inline query
 Telegram offsets map to KLIPY page numbers. Answers contain up to 50 results and expose the next page only
 when KLIPY reports one. During the Telegram macOS stability experiment, answers are not cached and
 use KLIPY's `xs.gif` rendition instead of provider MP4s to exercise Telegram's actual-GIF ingestion
-path. Local testing on Telegram for macOS 12.9 has shown no crashes with either 8 or 50 `xs.gif`
-results, whereas the previous remote-MP4 payload crashed at both 24 and 8 results. A follow-up with
-50 larger `sm.gif` results also crashed; despite the static JPEG thumbnail, the gallery tiles moved,
-confirming that Telegram fetches `gif_url` for animated previews. See
+path. Initial testing on Telegram for macOS 12.9 showed no crashes with either 8 or 50 `xs.gif`
+results, whereas the previous remote-MP4 payload crashed at both 24 and 8 results. Controlled cold-
+cache testing later reproduced the same crash with four `xs.gif` files totaling only 351 KB, so the
+smaller rendition reduces risk but does not eliminate the Telegram client bug. See
 [`docs/research/telegram-macos-inline-media-crash.md`](docs/research/telegram-macos-inline-media-crash.md)
 for the evidence and experiment history.
 
@@ -133,18 +133,20 @@ Normal searches always use the confirmed-stable `xs.gif` rendition. A diagnostic
 fixed subset from the first KLIPY page without changing the normal bot behavior:
 
 ```text
-!test <xs|sm> <start> <count> <search query>
+!test <xs|sm> [fixed] <start> <count> <search query>
 ```
 
 For example, `!test sm 1 1 cats` returns only the first `cats` result using `sm.gif`, while
-`!test xs 1 1 cats` returns the same item using `xs.gif`. `start` and `count` are 1-based, bounded to
-the first 50 results, and diagnostic answers never paginate. Each diagnostic result receives a fresh
-rendition-specific ID, and the server logs its KLIPY ID, URL, dimensions, and byte size.
+`!test xs 1 1 cats` returns the same item using `xs.gif`. Add the optional `fixed` token to replace
+all provider thumbnails with one 162-byte JPEG, allowing GIF and thumbnail fetches to be tested
+independently. `start` and `count` are 1-based, bounded to the first 50 results, and diagnostic answers
+never paginate. Each diagnostic result receives a fresh ID, and the server logs GIF and thumbnail
+metadata.
 
 These commands are intentionally capable of reproducing the Telegram macOS crash. Begin with one
 result and increase geometrically only after each previous case is stable. Controlled testing found
 that two exact `sm.gif` URL sets crashed when newly introduced media were fetched, then worked
 unchanged after those URLs had loaded independently. This rules out a deterministic file, count, or
 simple byte/frame/pixel threshold and identifies Telegram Mac's concurrent cold `MediaBox` fetch/cache
-path as the practical trigger. Normal searches remain on `xs.gif` because that rendition has stayed
-stable even with 50 results.
+path as the practical trigger. Normal searches remain on `xs.gif` because it has the lowest observed
+crash frequency, although one controlled cold-cache `xs.gif` group also reproduced the bug.

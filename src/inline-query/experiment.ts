@@ -1,4 +1,5 @@
 export type GifRendition = 'xs' | 'sm'
+export type ThumbnailMode = 'provider' | 'fixed'
 
 export type ParsedInlineQuery =
   | { readonly kind: 'normal'; readonly query: string }
@@ -6,6 +7,7 @@ export type ParsedInlineQuery =
   | {
       readonly kind: 'experiment'
       readonly rendition: GifRendition
+      readonly thumbnailMode: ThumbnailMode
       readonly start: number
       readonly count: number
       readonly query: string
@@ -13,7 +15,7 @@ export type ParsedInlineQuery =
 
 const TEST_PREFIX = '!test'
 const MAX_RESULTS = 50
-const EXPERIMENT_PATTERN = /^!test\s+(xs|sm)\s+(\d{1,2})\s+(\d{1,2})\s+(.+)$/
+const EXPERIMENT_PATTERN = /^!test\s+(xs|sm)(?:\s+(fixed))?\s+(\d{1,2})\s+(\d{1,2})\s+(.+)$/
 
 export const parseInlineQuery = (input: string): ParsedInlineQuery => {
   const query = input.trim()
@@ -26,9 +28,10 @@ export const parseInlineQuery = (input: string): ParsedInlineQuery => {
   if (match === null) return { kind: 'pending-experiment' }
 
   const rendition: GifRendition = match[1] === 'sm' ? 'sm' : 'xs'
-  const start = Number(match[2])
-  const count = Number(match[3])
-  const searchQuery = match[4].trim()
+  const thumbnailMode: ThumbnailMode = match[2] === 'fixed' ? 'fixed' : 'provider'
+  const start = Number(match[3])
+  const count = Number(match[4])
+  const searchQuery = match[5].trim()
 
   if (
     start < 1 ||
@@ -41,5 +44,12 @@ export const parseInlineQuery = (input: string): ParsedInlineQuery => {
     return { kind: 'pending-experiment' }
   }
 
-  return { kind: 'experiment', rendition, start, count, query: searchQuery }
+  return {
+    kind: 'experiment',
+    rendition,
+    thumbnailMode,
+    start,
+    count,
+    query: searchQuery
+  }
 }

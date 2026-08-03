@@ -47,7 +47,7 @@ describe('KLIPY GIF mapping', () => {
   })
 
   it('can map the small GIF with a cache-busting experiment ID', () => {
-    expect(mapKlipyGif(gif, 'sm', 'test-sm-1')).toEqual({
+    expect(mapKlipyGif(gif, { rendition: 'sm', idPrefix: 'test-sm-1' })).toEqual({
       type: 'gif',
       id: 'test-sm-1-42',
       gif_url: 'https://static.klipy.com/hello-small.gif',
@@ -57,5 +57,11 @@ describe('KLIPY GIF mapping', () => {
       thumbnail_mime_type: 'image/jpeg',
       title: 'Hello'
     })
+  })
+
+  it('can replace provider thumbnails with one fixed JPEG', () => {
+    expect(mapKlipyGif(gif, { thumbnailMode: 'fixed' }).thumbnail_url).toBe(
+      'https://telegram-gif-bot.vercel.app/inline-test-thumbnail.jpg'
+    )
   })
 })

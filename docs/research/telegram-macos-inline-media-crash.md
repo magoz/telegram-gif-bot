@@ -11,7 +11,7 @@ The local Telegram crash reports show a deterministic **stack overflow / excessi
 
 There is also one concrete defect in the original payloads: some KLIPY MP4 renditions contain a silent AAC track, while Telegram defines `InlineQueryResultMpeg4Gif` as H.264/MPEG-4 AVC **without sound**. That should be fixed, but the crash stack does not prove that it is the recursion trigger.
 
-The current mitigation—returning KLIPY's smallest actual GIF rendition as `InlineQueryResultGif`—has shown **no crashes in local testing**, including answers containing the Telegram maximum of 50 results. Controlled `sm.gif` tests isolated the practical trigger to Telegram's concurrent **cold remote-media fetch/cache path**: two exact URL sets crashed when newly introduced media were fetched, then worked unchanged after those same URLs had loaded independently. Result count, individual malformed files, total encoded bytes, frame count, duration, and decoded pixel workload do not independently predict the crash. Larger renditions increase exposure to the bug, while `xs.gif` has remained below the observed risk boundary.
+Returning KLIPY's smallest actual GIF rendition as `InlineQueryResultGif` substantially reduced the crash frequency and initially remained stable with up to 50 results. Controlled tests isolated the practical trigger to Telegram's concurrent **cold remote-media fetch/cache path**: exact URL sets crashed when newly introduced media were fetched, then worked unchanged after those URLs became warm. A later cold group of four `xs.gif` files totaling only 351 KB also reproduced the crash, proving that the smallest rendition mitigates but does not eliminate the client bug. Result count, individual malformed files, media format, total encoded bytes, frame count, duration, and decoded pixel workload do not independently predict it.
 
 ## Outcome update: working mitigation
 
@@ -25,6 +25,7 @@ The following sequence was tested on Telegram for macOS 12.9 build 282555:
 | 8 remote `xs.gif` items as `gif` with static JPEG thumbnails        | No crash observed                                                                                            |
 | Up to 50 remote `xs.gif` items as `gif` with static JPEG thumbnails | No crash observed; reported as working perfectly                                                             |
 | Up to 50 remote `sm.gif` items as `gif` with static JPEG thumbnails | Crashed; the gallery tiles were animated, proving Telegram fetched the larger `gif_url` for preview playback |
+| Four cold `xs.gif` items totaling 351 KB with cold JPEG thumbnails  | Crashed once, then the identical query worked immediately after the resources were warm                      |
 
 One test briefly showed blank result slots for some items. That may be an individual GIF or thumbnail fetch/decoding failure and has not been reproduced or diagnosed. It did not cause a crash.
 
@@ -53,10 +54,14 @@ The diagnostic query mode held the search, item positions, result type, and JPEG
 | `dogs`, `sm`, positions 1–5 when position 5 was newly introduced | 3.097 MB, 153 frames, 5.58M pixels              | Crashed |
 | `dogs`, `sm`, position 5 alone                                   | 0.096 MB, 4 frames, 0.22M pixels                | Worked  |
 | `dogs`, `sm`, positions 1–5 after position 5 was warm            | Identical to the earlier crashing payload       | Worked  |
+| `otters`, `sm`, positions 1–4 on first load                      | 2.406 MB                                        | Crashed |
+| `otters`, identical positions immediately repeated               | Same URLs and metadata                          | Worked  |
+| `raccoons`, `xs`, positions 1–4 on first load                    | 0.351 MB                                        | Crashed |
+| `raccoons`, identical positions immediately repeated             | Same URLs and metadata                          | Worked  |
 
-The `cats` and `dogs` crashes produced reports at 21:16 and 21:28 on August 3. Both were again `EXC_BAD_ACCESS` / `SIGBUS` stack-guard failures on `MediaBox-Data`.
+The controlled crashes produced reports at 21:16, 21:28, 21:36, 21:38, and 21:41 on August 3. The inspected reports were again `EXC_BAD_ACCESS` / `SIGBUS` stack-guard failures on `MediaBox-Data`.
 
-These comparisons rule out a deterministic malformed asset or a simple threshold based on count, compressed bytes, frames, duration, or decoded pixels. The same remote URLs changing from crash to success after warming is direct evidence that fetch/cache timing and synchronous media-resource recursion are essential to the trigger.
+These comparisons rule out a deterministic malformed asset or a simple threshold based on count, compressed bytes, frames, duration, or decoded pixels. The same remote URLs changing from crash to success immediately after warming is direct evidence that fetch/cache timing and synchronous media-resource recursion are essential to the trigger. The 351 KB `xs.gif` failure also shows that reducing payload size only lowers probability.
 
 ## Original crashing payload
 
@@ -71,9 +76,9 @@ The thumbnail fields were valid: Telegram permits JPEG thumbnails and makes `mpe
 
 Telegram's own GIF documentation likewise says Telegram GIFs are soundless H.264 MPEG-4 videos and that uploaded GIF images are converted to MPEG-4.[^telegram-gifs]
 
-## Current working payload
+## Current lowest-risk payload
 
-The bot now requests `gif,jpg` from KLIPY and maps each item to:
+The bot requests `gif,jpg` from KLIPY and maps each normal-search item to:
 
 - `type: "gif"` (`InlineQueryResultGif`);
 - KLIPY `file.xs.gif` as `gif_url`;
@@ -81,7 +86,7 @@ The bot now requests `gif,jpg` from KLIPY and maps each item to:
 - KLIPY `file.sm.jpg` as a static JPEG thumbnail;
 - up to 50 results per answer, with normal offset pagination.[^bot-api-gif]
 
-This keeps the animated native inline gallery and the normal one-tap send behavior while avoiding KLIPY's provider MP4 stream layout and the larger `sm.gif` payload that also reproduced the crash.
+This keeps the animated native inline gallery and normal one-tap send behavior while avoiding KLIPY's provider MP4 stream layout. It is the lowest-risk observed payload, not a complete fix for the Telegram client bug.
 
 The `sm.gif` experiment also answered the preview/send question: although `thumbnail_url` remained the static `sm.jpg`, gallery tiles were animated. Telegram therefore fetched `gif_url` for animated preview playback. The standard GIF inline-result type offers no separate low-resolution animated GIF preview URL, so it cannot preview `xs.gif` while sending `sm.gif` without introducing an MPEG-4 animated thumbnail or a nonstandard post-send replacement flow.
 
@@ -103,7 +108,7 @@ The seven reports in `~/Library/Logs/DiagnosticReports/Telegram-*.ips` from July
 - faulting dispatch queue: `MediaBox-Data`
 - the same repeating Telegram binary frame offsets, including `0x1a7b130`, `0x1a59dd4`, `0x1a53a80`, and `0x1a72b6c`
 
-Four additional reports were recorded on August 2–3 before the actual-GIF deployment. The latest of those, at 20:01 on August 3, again faulted on `MediaBox-Data` with the same stack-guard failure. No new crash report appeared during the subsequent 8-result and 50-result `xs.gif` tests. Controlled `sm.gif` experiments later produced matching `MediaBox-Data` stack-guard crashes at 21:16 and 21:28; both exact payloads worked after their media URLs were warm.
+Four additional reports were recorded on August 2–3 before the actual-GIF deployment. The latest of those, at 20:01 on August 3, again faulted on `MediaBox-Data` with the same stack-guard failure. No new crash report appeared during the initial 8-result and 50-result `xs.gif` tests. Controlled experiments later produced matching `MediaBox-Data` stack-guard crashes with both `sm.gif` and `xs.gif`; exact payloads worked after their media URLs were warm.
 
 Telegram's source creates its media-data queue with exactly the name `MediaBox-Data`.[^mediabox-source] This places the failure in Telegram's media resource/cache pipeline, before or around file completion, rather than in a conventional video decoder crash.
 
@@ -193,13 +198,13 @@ The audited files decode successfully and their declared dimensions match. Contr
 
 ## Controlled isolation protocol
 
-Normal inline searches remain on the confirmed-stable `xs.gif` payload. Diagnostic queries use this syntax:
+Normal inline searches remain on the lowest-risk `xs.gif` payload. Diagnostic queries use this syntax:
 
 ```text
-!test <xs|sm> <start 1-50> <count 1-50> <search query>
+!test <xs|sm> [fixed] <start 1-50> <count 1-50> <search query>
 ```
 
-The diagnostic mode always requests KLIPY page 1, selects the specified contiguous subset, disables pagination, gives every result a rendition-and-position-specific ID, and logs each selected KLIPY ID, URL, dimensions, and declared byte size. Incomplete or invalid `!test` commands return no media instead of accidentally running an uncontrolled search.
+The diagnostic mode always requests KLIPY page 1, selects the specified contiguous subset, disables pagination, gives every result a rendition-and-position-specific ID, and logs GIF and thumbnail metadata. The optional `fixed` token replaces all provider thumbnails with one 162-byte JPEG so animation and thumbnail cold-fetch behavior can be separated. Incomplete or invalid `!test` commands return no media instead of accidentally running an uncontrolled search.
 
 Use one fixed search term and proceed in this order:
 
@@ -217,7 +222,7 @@ This protocol can distinguish item-specific failure, rendition-specific failure,
 
 ### Keep and monitor the current mitigation
 
-Continue using KLIPY `file.xs.gif` through `InlineQueryResultGif` with a static JPEG thumbnail. This is currently the best combination of native inline UX and observed stability.
+Continue using KLIPY `file.xs.gif` through `InlineQueryResultGif` with a static JPEG thumbnail. This is currently the best combination of native inline UX and reduced crash frequency, but controlled cold-cache testing proves it is not crash-free.
 
 Before treating the result as conclusive:
 
@@ -237,7 +242,7 @@ A 32-result audit of the same searches found:
 - `xs.gif`: 6,690–461,852 bytes; median 78,989; none over 1 MiB
 - `sm.gif`: 20,511–1,293,655 bytes; median 271,414; 2/32 over 1 MiB
 
-The `xs.gif` variant is now the required stability workaround. Telegram documents that actual GIF uploads are converted to soundless MP4, so it also avoids trusting KLIPY's MP4 stream layout.[^telegram-gifs] The larger `sm.gif` rendition reproduced the crash, so do not upgrade the selected media without repeating the crash test at progressively smaller result counts.
+The `xs.gif` variant remains the preferred risk-reduction workaround. Telegram documents that actual GIF uploads are converted to soundless MP4, so this also avoids trusting KLIPY's MP4 stream layout.[^telegram-gifs] Both GIF renditions can trigger the cold-fetch bug, but `sm.gif` has reproduced it more readily.
 
 ### If MP4 is retained
 
@@ -287,6 +292,8 @@ Also post the issue link in Telegram's official native-macOS beta/report chat, b
 | I    |           50 | remote `sm.gif` as `gif` + JPEG thumbnail       | Failed: animated previews loaded, then Telegram Mac crashed     |
 | J    |          1–5 | controlled cold `sm.gif` subsets                | Mixed: two subsets crashed only while media were newly fetched  |
 | K    |          4–5 | exact previously crashing `sm.gif` subsets warm | Passed unchanged after every URL had loaded independently       |
+| L    |            4 | cold `xs.gif` + provider JPEG thumbnails        | Failed once at only 351 KB; identical warm repeat passed        |
+| M    |          1–4 | fixed 162-byte JPEG thumbnail isolation         | In progress                                                     |
 
 Do not rely on Telegram's five-minute inline cache while testing: change result IDs or temporarily set a very low cache time so each case is actually refreshed.
 
