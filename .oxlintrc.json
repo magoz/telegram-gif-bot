@@ -24,5 +24,5 @@
     "typescript/no-non-null-assertion": "error",
     "unicorn/prefer-node-protocol": "error"
   },
-  "ignorePatterns": ["api/telegram.js", "coverage/**", "node_modules/**"]
+  "ignorePatterns": ["api/*.js", "coverage/**", "node_modules/**"]
 }

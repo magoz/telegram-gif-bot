@@ -1,10 +1,12 @@
 import { Context } from 'effect'
 import type { Effect, Layer } from 'effect'
 import type { TelegramConfigError, TelegramOperationError } from './errors'
+import type { TelegramMiniAppSession } from './mini-app-auth'
 import type { TelegramInlineAnswer } from './schemas'
 
 export type TelegramShape = {
   readonly authenticateWebhook: (secret: string | null) => boolean
+  readonly authenticateMiniApp: (initData: string) => TelegramMiniAppSession | undefined
   readonly sendStartMessage: (chatId: number) => Effect.Effect<void, TelegramOperationError>
   readonly answerInlineQuery: (
     answer: TelegramInlineAnswer

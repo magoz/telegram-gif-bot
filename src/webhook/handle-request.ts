@@ -27,7 +27,7 @@ export const handleRequest = (request: Request) => {
     const update = yield* parseTelegramUpdate(request)
 
     if (update.inline_query !== undefined) {
-      yield* handleInlineQuery(update.inline_query)
+      yield* handleInlineQuery(update.inline_query, new URL(request.url).origin)
     }
 
     if (update.message !== undefined && isStartCommand(update.message.text)) {

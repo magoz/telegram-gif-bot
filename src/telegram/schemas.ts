@@ -46,7 +46,13 @@ export const TelegramInlineAnswer = Schema.Struct({
   results: Schema.Array(TelegramInlineResult),
   cache_time: Schema.Number,
   is_personal: Schema.Boolean,
-  next_offset: Schema.String
+  next_offset: Schema.String,
+  button: Schema.optionalKey(
+    Schema.Struct({
+      text: Schema.Literal('Open Gallery'),
+      web_app: Schema.Struct({ url: Schema.String })
+    })
+  )
 })
 
 export type TelegramInlineAnswer = typeof TelegramInlineAnswer.Type

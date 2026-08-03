@@ -19,6 +19,7 @@ it.effect('answers a start command with the search launcher', () => {
 
   const telegram: TelegramShape = {
     authenticateWebhook: secret => secret === 'test-secret',
+    authenticateMiniApp: () => ({ userId: 42 }),
     answerInlineQuery: () => Effect.die(new Error('Unexpected inline answer')),
     sendStartMessage: chatId => {
       startChatId = chatId

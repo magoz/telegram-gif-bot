@@ -19,9 +19,6 @@ const configSecret = (name: string) =>
     Effect.mapError(() => new KlipyConfigError({ message: `${name} not found` }))
   )
 
-const operationError = (message: string, cause: unknown) =>
-  new KlipyOperationError({ message, cause })
-
 const make = Effect.gen(function* () {
   const apiKey = Redacted.value(yield* configSecret('KLIPY_API_KEY'))
   const httpClient = (yield* HttpClient.HttpClient).pipe(HttpClient.filterStatusOk)
@@ -45,7 +42,7 @@ const make = Effect.gen(function* () {
     return httpClient.execute(httpRequest).pipe(
       Effect.flatMap(HttpClientResponse.schemaBodyJson(KlipyResponse)),
       Effect.timeout('4 seconds'),
-      Effect.mapError(error => operationError(`KLIPY ${path} request failed`, error))
+      Effect.mapError(() => new KlipyOperationError({ message: `KLIPY ${path} request failed` }))
     )
   }
 

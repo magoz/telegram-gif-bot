@@ -29,7 +29,7 @@ const gif: KlipyGif = {
 }
 
 describe('KLIPY GIF mapping', () => {
-  it('uses small MP4 media and JPEG thumbnail', () => {
+  it('uses a native MPEG-4 GIF with a static JPEG thumbnail', () => {
     expect(mapKlipyGif(gif)).toEqual({
       type: 'mpeg4_gif',
       id: '42',
