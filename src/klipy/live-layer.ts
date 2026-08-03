@@ -10,7 +10,7 @@ import { Klipy, type KlipyRequest, type KlipySearchRequest } from './service'
 import { KlipyResponse } from './schemas'
 
 const KLIPY_API_BASE_URL = 'https://api.klipy.com/api/v1'
-const RESULTS_PER_PAGE = 8
+const RESULTS_PER_PAGE = 50
 const CONTENT_FILTER = 'high'
 const FORMAT_FILTER = 'gif,jpg'
 

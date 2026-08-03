@@ -117,7 +117,7 @@ Telegram inline query
   -> Telegram answerInlineQuery
 ```
 
-Telegram offsets map to KLIPY page numbers. Answers contain 8 results and expose the next page only
+Telegram offsets map to KLIPY page numbers. Answers contain up to 50 results and expose the next page only
 when KLIPY reports one. During the Telegram macOS stability experiment, answers are not cached and
 use KLIPY's `xs.gif` rendition instead of provider MP4s to exercise Telegram's actual-GIF ingestion
 path.
