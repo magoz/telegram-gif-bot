@@ -1,7 +1,7 @@
 # telegram-gif-bot
 
 Telegram inline GIF bot backed by [KLIPY](https://klipy.com/). Type `@your_bot cats` in
-any Telegram chat, open the animated Mini App gallery, then send one.
+any Telegram chat, browse results, then send one.
 
 ## Stack
 
@@ -13,7 +13,7 @@ any Telegram chat, open the animated Mini App gallery, then send one.
 - Oxfmt
 - Vitest + `@effect/vitest`
 
-No frontend framework or database.
+No frontend, framework, or database.
 
 ## Setup
 
@@ -60,23 +60,16 @@ bun install
 bun run dev
 ```
 
-The webhook listens at `http://localhost:3000/api/telegram` and the gallery at
-`http://localhost:3000/api/gallery`. Telegram needs a public HTTPS URL and valid Mini App launch
-data for end-to-end testing; use a tunnel or deploy to Vercel.
+The webhook listens at `http://localhost:3000/api/telegram`. Telegram needs a public HTTPS URL;
+use a tunnel for end-to-end local testing or deploy to Vercel.
 
 ## Deploy
 
 Create a Vercel project from this repository and add all three environment variables. The checked-in
-`vercel.json` selects the framework-free Bun runtime. `bun install` bundles the webhook and gallery
-entrypoints into `api/telegram.js` and `api/gallery.js`, avoiding Vercel Bun's ESM linker issue with
-Effect's module graph. In production, rate-limit `POST /api/gallery` at the Vercel or edge layer,
-keyed by authenticated user and/or source address as available.
+`vercel.json` selects the framework-free Bun runtime. `bun install` bundles the Effect entrypoint
+into `api/telegram.js`, avoiding Vercel Bun's ESM linker issue with Effect's module graph.
 
-After deploying, enable the Mini App in [@BotFather](https://t.me/BotFather): **My Bots → select the
-bot → Bot Settings → Configure Mini App → Enable Mini App**. Accept Telegram's terms and configure
-`https://YOUR_DOMAIN/api/gallery` as the Mini App URL.
-
-Then register the production webhook. Replace placeholders without committing secrets:
+After deploying, register the production webhook. Replace placeholders without committing secrets:
 
 ```sh
 curl --fail-with-body \
@@ -98,10 +91,7 @@ curl --fail-with-body \
   "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getWebhookInfo"
 ```
 
-Then type `@your_bot cats` in any Telegram chat. Telegram shows an **Open Gallery** button instead
-of loading a native animated grid. Select a GIF in the gallery, then tap the sole inline result to
-send it as a native embedded GIF. Telegram requires this final confirmation tap for inline-mode Mini
-Apps.
+Then type `@your_bot cats` in any Telegram chat.
 
 Sending `/start` directly to the bot returns a **Search GIFs** button that opens inline mode in the
 current chat.
@@ -120,15 +110,14 @@ bun run format        # format with Oxfmt
 ```text
 Telegram inline query
   -> POST /api/telegram
-  -> answer with an Open Gallery Mini App button and no media
-  -> GET /api/gallery renders the animated WebView gallery
-  -> authenticated POST /api/gallery searches KLIPY
-  -> selected item returns to inline mode as a compact query/page/id locator
-  -> bot re-fetches that KLIPY page and returns only the matching MPEG-4 GIF
-  -> user taps the sole result to send the native embedded GIF
+  -> verify Telegram secret header
+  -> decode update with Effect Schema
+  -> KLIPY search, or trending for an empty query
+  -> map the smallest actual GIF + a static JPEG thumbnail
+  -> Telegram answerInlineQuery
 ```
 
-The gallery validates Telegram's signed, short-lived Mini App initialization data before proxying
-KLIPY searches, so API keys remain server-side. It lazy-loads small MP4 previews and pauses off-screen
-videos. The final locator contains no media URL and needs no database: the webhook re-resolves and
-ID-filters the selected provider result before sending it to Telegram.
+Telegram offsets map to KLIPY page numbers. Answers contain 8 results and expose the next page only
+when KLIPY reports one. During the Telegram macOS stability experiment, answers are not cached and
+use KLIPY's `xs.gif` rendition instead of provider MP4s to exercise Telegram's actual-GIF ingestion
+path.

@@ -7,17 +7,15 @@ const gif: KlipyGif = {
   slug: 'hello-42',
   title: 'Hello',
   file: {
-    hd: {
-      mp4: { url: 'https://static.klipy.com/hello.mp4', width: 640, height: 360, size: 100 },
-      jpg: { url: 'https://static.klipy.com/hello.jpg', width: 640, height: 360, size: 10 }
+    xs: {
+      gif: {
+        url: 'https://static.klipy.com/hello-extra-small.gif',
+        width: 160,
+        height: 90,
+        size: 25
+      }
     },
     sm: {
-      mp4: {
-        url: 'https://static.klipy.com/hello-small.mp4',
-        width: 320,
-        height: 180,
-        size: 50
-      },
       jpg: {
         url: 'https://static.klipy.com/hello-small.jpg',
         width: 320,
@@ -29,13 +27,13 @@ const gif: KlipyGif = {
 }
 
 describe('KLIPY GIF mapping', () => {
-  it('uses a native MPEG-4 GIF with a static JPEG thumbnail', () => {
+  it('uses the extra-small GIF with a static JPEG thumbnail', () => {
     expect(mapKlipyGif(gif)).toEqual({
-      type: 'mpeg4_gif',
+      type: 'gif',
       id: '42',
-      mpeg4_url: 'https://static.klipy.com/hello-small.mp4',
-      mpeg4_width: 320,
-      mpeg4_height: 180,
+      gif_url: 'https://static.klipy.com/hello-extra-small.gif',
+      gif_width: 160,
+      gif_height: 90,
       thumbnail_url: 'https://static.klipy.com/hello-small.jpg',
       thumbnail_mime_type: 'image/jpeg',
       title: 'Hello'

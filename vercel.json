@@ -5,9 +5,6 @@
   "functions": {
     "api/telegram.js": {
       "maxDuration": 10
-    },
-    "api/gallery.js": {
-      "maxDuration": 10
     }
   }
 }

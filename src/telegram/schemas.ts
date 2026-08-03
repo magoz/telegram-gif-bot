@@ -29,11 +29,11 @@ export const TelegramUpdate = Schema.Struct({
 export type TelegramUpdate = typeof TelegramUpdate.Type
 
 export const TelegramInlineResult = Schema.Struct({
-  type: Schema.Literal('mpeg4_gif'),
+  type: Schema.Literal('gif'),
   id: Schema.String,
-  mpeg4_url: Schema.String,
-  mpeg4_width: Schema.Number,
-  mpeg4_height: Schema.Number,
+  gif_url: Schema.String,
+  gif_width: Schema.Number,
+  gif_height: Schema.Number,
   thumbnail_url: Schema.String,
   thumbnail_mime_type: Schema.Literal('image/jpeg'),
   title: Schema.String
@@ -46,13 +46,7 @@ export const TelegramInlineAnswer = Schema.Struct({
   results: Schema.Array(TelegramInlineResult),
   cache_time: Schema.Number,
   is_personal: Schema.Boolean,
-  next_offset: Schema.String,
-  button: Schema.optionalKey(
-    Schema.Struct({
-      text: Schema.Literal('Open Gallery'),
-      web_app: Schema.Struct({ url: Schema.String })
-    })
-  )
+  next_offset: Schema.String
 })
 
 export type TelegramInlineAnswer = typeof TelegramInlineAnswer.Type

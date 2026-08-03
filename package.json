@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:function": "bun build src/vercel.ts --target=bun --minify --outfile=api/telegram.js && bun build src/vercel-gallery.ts --target=bun --minify --outfile=api/gallery.js",
+    "build:function": "bun build src/vercel.ts --target=bun --minify --outfile=api/telegram.js",
     "dev": "bun --watch src/server.ts",
     "start": "bun src/server.ts",
     "lint": "oxlint",

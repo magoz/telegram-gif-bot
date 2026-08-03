@@ -7,18 +7,16 @@ const KlipyMedia = Schema.Struct({
   size: Schema.Number
 })
 
-const KlipyFileVariant = Schema.Struct({
-  mp4: KlipyMedia,
-  jpg: KlipyMedia
-})
+const KlipyGifVariant = Schema.Struct({ gif: KlipyMedia })
+const KlipyThumbnailVariant = Schema.Struct({ jpg: KlipyMedia })
 
 export const KlipyGif = Schema.Struct({
   id: Schema.Union([Schema.Number, Schema.String]),
   slug: Schema.String,
   title: Schema.String,
   file: Schema.Struct({
-    hd: KlipyFileVariant,
-    sm: KlipyFileVariant
+    xs: KlipyGifVariant,
+    sm: KlipyThumbnailVariant
   })
 })
 

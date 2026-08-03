@@ -6,5 +6,5 @@
   "singleQuote": true,
   "tabWidth": 2,
   "trailingComma": "none",
-  "ignorePatterns": ["api/*.js", "coverage/**", "node_modules/**"]
+  "ignorePatterns": ["api/telegram.js", "coverage/**", "node_modules/**"]
 }

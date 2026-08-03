@@ -1,5 +1,4 @@
 import { app } from './app'
-import { galleryApp } from './gallery/app'
 
 const DEFAULT_PORT = 3000
 const configuredPort = Number(Bun.env.PORT)
@@ -10,10 +9,11 @@ Bun.serve({
   port,
   fetch(request) {
     const url = new URL(request.url)
-    if (url.pathname === '/api/telegram') return app(request)
-    if (url.pathname === '/api/gallery') return galleryApp(request)
-    return Response.json({ error: 'Not found' }, { status: 404 })
+    if (url.pathname !== '/api/telegram') {
+      return Response.json({ error: 'Not found' }, { status: 404 })
+    }
+    return app(request)
   }
 })
 
-console.log(`telegram-gif-bot listening on http://localhost:${String(port)}`)
+console.log(`telegram-gif-bot listening on http://localhost:${String(port)}/api/telegram`)

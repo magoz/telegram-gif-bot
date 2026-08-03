@@ -6,7 +6,6 @@ import {
   HttpClientResponse
 } from 'effect/unstable/http'
 import { TelegramConfigError, TelegramOperationError } from './errors'
-import { authenticateMiniAppInitData } from './mini-app-auth'
 import { Telegram, type TelegramShape } from './service'
 import { TelegramApiSuccess, TelegramInlineAnswer, TelegramStartMessage } from './schemas'
 
@@ -25,8 +24,6 @@ const make = Effect.gen(function* () {
 
   const authenticateWebhook: TelegramShape['authenticateWebhook'] = secret =>
     secret !== null && secret === webhookSecret
-  const authenticateMiniApp: TelegramShape['authenticateMiniApp'] = initData =>
-    authenticateMiniAppInitData(initData, botToken)
 
   const answerInlineQuery: TelegramShape['answerInlineQuery'] = answer =>
     HttpClientRequest.post(`${apiBaseUrl}/answerInlineQuery`).pipe(
@@ -56,12 +53,7 @@ const make = Effect.gen(function* () {
       Effect.mapError(() => new TelegramOperationError({ message: 'Telegram sendMessage failed' }))
     )
 
-  return Telegram.of({
-    authenticateWebhook,
-    authenticateMiniApp,
-    answerInlineQuery,
-    sendStartMessage
-  })
+  return Telegram.of({ authenticateWebhook, answerInlineQuery, sendStartMessage })
 })
 
 export const TelegramLive = Layer.effect(Telegram, make).pipe(Layer.provide(FetchHttpClient.layer))

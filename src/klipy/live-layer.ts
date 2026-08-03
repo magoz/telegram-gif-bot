@@ -12,7 +12,7 @@ import { KlipyResponse } from './schemas'
 const KLIPY_API_BASE_URL = 'https://api.klipy.com/api/v1'
 const RESULTS_PER_PAGE = 8
 const CONTENT_FILTER = 'high'
-const FORMAT_FILTER = 'mp4,jpg'
+const FORMAT_FILTER = 'gif,jpg'
 
 const configSecret = (name: string) =>
   Config.redacted(name).pipe(
