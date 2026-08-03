@@ -4,6 +4,7 @@ export type ThumbnailMode = 'provider' | 'fixed'
 export type ParsedInlineQuery =
   | { readonly kind: 'normal'; readonly query: string }
   | { readonly kind: 'pending-experiment' }
+  | { readonly kind: 'cached-experiment' }
   | {
       readonly kind: 'experiment'
       readonly rendition: GifRendition
@@ -16,6 +17,7 @@ export type ParsedInlineQuery =
 
 const TEST_PREFIX = '!test'
 const COLD_PREFIX = '!cold'
+const CACHED_PREFIX = '!cached'
 const MAX_RESULTS = 50
 const TEST_PATTERN = /^!test\s+(xs|sm)(?:\s+(fixed))?\s+(\d{1,2})\s+(\d{1,2})\s+(.+?)\s+::go$/
 const COLD_PATTERN =
@@ -61,8 +63,11 @@ export const parseInlineQuery = (input: string): ParsedInlineQuery => {
   const query = input.trim()
   const isTest = query === TEST_PREFIX || query.startsWith(`${TEST_PREFIX} `)
   const isCold = query === COLD_PREFIX || query.startsWith(`${COLD_PREFIX} `)
+  const isCached = query === CACHED_PREFIX || query.startsWith(`${CACHED_PREFIX} `)
 
-  if (!isTest && !isCold) return { kind: 'normal', query }
+  if (!isTest && !isCold && !isCached) return { kind: 'normal', query }
+  if (query === `${CACHED_PREFIX} ::go`) return { kind: 'cached-experiment' }
+  if (isCached) return { kind: 'pending-experiment' }
 
   const testMatch = TEST_PATTERN.exec(query)
   if (testMatch !== null) {

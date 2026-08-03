@@ -35,6 +35,10 @@ describe('inline media experiment query', () => {
     })
   })
 
+  it('parses the Telegram-cached media experiment', () => {
+    expect(parseInlineQuery('!cached ::go')).toEqual({ kind: 'cached-experiment' })
+  })
+
   it('uses a caller nonce as the stable cold-media cache key', () => {
     expect(parseInlineQuery('!cold run-1 xs 1 4 badgers ::go')).toEqual({
       kind: 'experiment',
@@ -52,6 +56,8 @@ describe('inline media experiment query', () => {
     '!test sm 1 1 cats',
     '!test sm 1 1 cats ::g',
     '!cold',
+    '!cached',
+    '!cached ::g',
     '!cold xs 1 1 cats ::go',
     '!cold run-1 xs 1 1 cats',
     '!test md 1 1 cats ::go',

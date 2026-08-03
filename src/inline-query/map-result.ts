@@ -1,5 +1,5 @@
 import type { KlipyGif } from '@/klipy/schemas'
-import type { TelegramInlineResult } from '@/telegram/schemas'
+import type { TelegramRemoteGifInlineResult } from '@/telegram/schemas'
 import type { GifRendition, ThumbnailMode } from './experiment'
 
 export const FIXED_THUMBNAIL_URL = 'https://telegram-gif-bot.vercel.app/inline-test-thumbnail.jpg'
@@ -14,7 +14,7 @@ type MapKlipyGifOptions = {
 export const mapKlipyGif = (
   gif: KlipyGif,
   options: MapKlipyGifOptions = {}
-): TelegramInlineResult => {
+): TelegramRemoteGifInlineResult => {
   const rendition = options.rendition ?? 'xs'
   const media = gif.file[rendition].gif
   const id =
