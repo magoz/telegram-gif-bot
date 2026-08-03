@@ -66,6 +66,40 @@ it.effect('searches a trimmed query and answers with pagination', () => {
   }).pipe(Effect.provide(TestLayer))
 })
 
+it.effect('does not launch media while an experiment command is incomplete', () => {
+  let answer: TelegramInlineAnswer | undefined
+  const klipy: KlipyShape = {
+    search: () => Effect.die(new Error('Unexpected search')),
+    trending: () => Effect.die(new Error('Unexpected trending request'))
+  }
+  const telegram: TelegramShape = {
+    authenticateWebhook: () => true,
+    sendStartMessage: () => Effect.die(new Error('Unexpected start message')),
+    answerInlineQuery: value => {
+      answer = value
+      return Effect.void
+    }
+  }
+  const TestLayer = Layer.merge(Layer.succeed(Klipy, klipy), Layer.succeed(Telegram, telegram))
+
+  return Effect.gen(function* () {
+    yield* handleInlineQuery({
+      id: 'inline-pending',
+      from: { id: 789 },
+      query: '!cold run-1 xs 1 1 cats',
+      offset: ''
+    })
+
+    assert.deepStrictEqual(answer, {
+      inline_query_id: 'inline-pending',
+      results: [],
+      cache_time: 0,
+      is_personal: true,
+      next_offset: ''
+    })
+  }).pipe(Effect.provide(TestLayer))
+})
+
 it.effect('runs a bounded rendition experiment on page one without pagination', () => {
   let answer: TelegramInlineAnswer | undefined
   const klipy: KlipyShape = {
@@ -97,7 +131,7 @@ it.effect('runs a bounded rendition experiment on page one without pagination', 
     yield* handleInlineQuery({
       id: 'inline-test',
       from: { id: 789 },
-      query: '!test sm 2 2 cats',
+      query: '!test sm 2 2 cats ::go',
       offset: '4'
     })
 
@@ -106,8 +140,8 @@ it.effect('runs a bounded rendition experiment on page one without pagination', 
     assert.deepStrictEqual(
       answer?.results.map(result => ({ id: result.id, url: result.gif_url })),
       [
-        { id: 'test-reuse-sm-provider-2-inline-test-2', url: 'https://cdn.example/2-sm.gif' },
-        { id: 'test-reuse-sm-provider-3-inline-test-3', url: 'https://cdn.example/3-sm.gif' }
+        { id: 'test-reuse-sm-provider-2-2', url: 'https://cdn.example/2-sm.gif' },
+        { id: 'test-reuse-sm-provider-3-3', url: 'https://cdn.example/3-sm.gif' }
       ]
     )
   }).pipe(Effect.provide(TestLayer))

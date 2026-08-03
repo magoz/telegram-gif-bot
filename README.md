@@ -129,21 +129,22 @@ for the evidence and experiment history.
 
 ### Controlled crash experiments
 
-Normal searches always use the confirmed-stable `xs.gif` rendition. A diagnostic query can select a
+Normal searches always use the lowest-risk `xs.gif` rendition. A diagnostic query can select a
 fixed subset from the first KLIPY page without changing the normal bot behavior:
 
 ```text
-!test <xs|sm> [fixed] <start> <count> <search query>
-!cold <xs|sm> <start> <count> <search query>
+!test <xs|sm> [fixed] <start> <count> <search query> ::go
+!cold <run-id> <xs|sm> <start> <count> <search query> ::go
 ```
 
-For example, `!test sm 1 1 cats` returns only the first `cats` result using `sm.gif`, while
-`!test xs 1 1 cats` returns the same item using `xs.gif`. Add the optional `fixed` token to replace
+For example, `!test sm 1 1 cats ::go` returns only the first `cats` result using `sm.gif`, while
+`!test xs 1 1 cats ::go` returns the same item using `xs.gif`. Add the optional `fixed` token to replace
 all provider thumbnails with one 162-byte JPEG, allowing GIF and thumbnail fetches to be tested
-independently. The `!cold` form always uses that fixed thumbnail and adds a per-query cache key to
-each GIF URL, allowing the same content to be forced through Telegram's cold-fetch path repeatedly.
-`start` and `count` are 1-based, bounded to the first 50 results, and diagnostic answers never
-paginate. Each diagnostic result receives a fresh ID, and the server logs GIF and thumbnail metadata.
+independently. The `!cold` form always uses that fixed thumbnail and uses `run-id` as the GIF URL
+cache key. Repeating one command therefore reuses one media resource even if Telegram submits the
+query multiple times; changing `run-id` starts a new cold run. The required terminal `::go` marker
+prevents partial typing from launching experiments. `start` and `count` are 1-based, bounded to the
+first 50 results, and diagnostic answers never paginate. The server logs GIF and thumbnail metadata.
 
 These commands are intentionally capable of reproducing the Telegram macOS crash. Begin with one
 result and increase geometrically only after each previous case is stable. Controlled testing found

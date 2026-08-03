@@ -203,23 +203,25 @@ The audited files decode successfully and their declared dimensions match. Contr
 Normal inline searches remain on the lowest-risk `xs.gif` payload. Diagnostic queries use this syntax:
 
 ```text
-!test <xs|sm> [fixed] <start 1-50> <count 1-50> <search query>
-!cold <xs|sm> <start 1-50> <count 1-50> <search query>
+!test <xs|sm> [fixed] <start 1-50> <count 1-50> <search query> ::go
+!cold <run-id> <xs|sm> <start 1-50> <count 1-50> <search query> ::go
 ```
 
-The diagnostic mode always requests KLIPY page 1, selects the specified contiguous subset, disables pagination, gives every result a rendition-and-position-specific ID, and logs GIF and thumbnail metadata. The optional `fixed` token replaces all provider thumbnails with one 162-byte JPEG so animation and thumbnail cold-fetch behavior can be separated. The `!cold` form uses that fixed thumbnail and appends a unique per-query cache key to every GIF URL, forcing identical content through Telegram's cold-fetch path repeatedly. Incomplete or invalid diagnostic commands return no media instead of accidentally running an uncontrolled search.
+The diagnostic mode always requests KLIPY page 1, selects the specified contiguous subset, disables pagination, gives every result a rendition-and-position-specific ID, and logs GIF and thumbnail metadata. The optional `fixed` token replaces all provider thumbnails with one 162-byte JPEG. The `!cold` form also uses that fixed thumbnail and uses the caller-provided `run-id` as the query parameter on every GIF URL.
+
+The terminal `::go` marker is mandatory. Until it is complete, the bot returns no media, preventing incremental query text from launching overlapping experiments. Duplicate Telegram updates for the completed command reuse the same result IDs and `run-id` URLs. Change `run-id` only when intentionally starting another cold fetch.
 
 Use one fixed search term and proceed in this order:
 
-1. **Control:** `!test xs 1 1 cats`, then `!test xs 1 50 cats`.
-2. **Single-item rendition:** `!test sm 1 1 cats`. If it crashes, compare `xs` and `sm` for that same position and inspect the downloaded files.
-3. **Individual-item scan:** test `sm` with count 1 and starts 2–50. This separates a catalog-specific malformed asset from aggregate load.
-4. **Concurrency threshold:** if individual `sm` items are stable, test start 1 with counts 2, 4, 8, 16, 32, and 50. Stop at the first crash.
-5. **Byte-load versus count:** use logged media sizes to compare equal-count subsets with low and high aggregate bytes.
-6. **Cache:** repeat each boundary case once warm and once after clearing Telegram's media cache or using previously unseen result IDs.
-7. **Thumbnail:** only after establishing a repeatable boundary, hold the exact media set fixed and vary the thumbnail. The first `xs`/`sm` comparison already held the JPEG thumbnail constant, so this is lower priority.
+1. **Warm fixed thumbnail:** `!test xs fixed 1 1 cats ::go`.
+2. **Single cold item:** `!cold c1 xs 1 1 cats ::go`.
+3. **Same second item alone:** `!cold c2 xs 2 1 cats ::go`.
+4. **Cold concurrency:** use new run IDs for starts/counts 1/2, 1/3, and 1/4, stopping at the first crash.
+5. **Warm control:** repeat the exact same command and run ID; it must resolve to the same media URLs.
+6. **Rendition:** repeat the boundary with `sm`, changing only rendition and run ID.
+7. **Provider thumbnails:** after GIF URLs are warm, use `!test` without `fixed` to introduce only provider JPEG URLs.
 
-This protocol can distinguish item-specific failure, rendition-specific failure, result-count threshold, and aggregate-byte correlation. It cannot independently separate dimensions from encoding complexity without generating controlled transcodes of the same source asset.
+Early diagnostic commands did not require a terminal marker, and the first cache-busting implementation used Telegram's inline-query ID as its cache key. Telegram can submit incremental or duplicate inline queries, so those runs may have involved more overlapping resources than their nominal result counts. Their cold-fails/warm-works observations remain relevant, but exact minimum-count claims must be revalidated with the nonce-and-marker protocol.
 
 ## Recommended next steps
 

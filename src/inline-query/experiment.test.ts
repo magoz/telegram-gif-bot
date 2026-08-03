@@ -11,12 +11,12 @@ describe('inline media experiment query', () => {
     })
   })
 
-  it('parses a bounded rendition experiment', () => {
-    expect(parseInlineQuery('!test sm 5 8 cats')).toEqual({
+  it('parses a bounded rendition experiment only after the terminal marker', () => {
+    expect(parseInlineQuery('!test sm 5 8 cats ::go')).toEqual({
       kind: 'experiment',
       rendition: 'sm',
       thumbnailMode: 'provider',
-      forceCold: false,
+      mediaCacheKey: undefined,
       start: 5,
       count: 8,
       query: 'cats'
@@ -24,23 +24,23 @@ describe('inline media experiment query', () => {
   })
 
   it('parses the fixed-thumbnail isolation mode', () => {
-    expect(parseInlineQuery('!test xs fixed 1 4 raccoons')).toEqual({
+    expect(parseInlineQuery('!test xs fixed 1 4 raccoons ::go')).toEqual({
       kind: 'experiment',
       rendition: 'xs',
       thumbnailMode: 'fixed',
-      forceCold: false,
+      mediaCacheKey: undefined,
       start: 1,
       count: 4,
       query: 'raccoons'
     })
   })
 
-  it('parses cache-busted GIFs with a fixed thumbnail', () => {
-    expect(parseInlineQuery('!cold xs 1 4 badgers')).toEqual({
+  it('uses a caller nonce as the stable cold-media cache key', () => {
+    expect(parseInlineQuery('!cold run-1 xs 1 4 badgers ::go')).toEqual({
       kind: 'experiment',
       rendition: 'xs',
       thumbnailMode: 'fixed',
-      forceCold: true,
+      mediaCacheKey: 'run-1',
       start: 1,
       count: 4,
       query: 'badgers'
@@ -49,12 +49,14 @@ describe('inline media experiment query', () => {
 
   it.each([
     '!test',
-    '!test sm',
+    '!test sm 1 1 cats',
+    '!test sm 1 1 cats ::g',
     '!cold',
-    '!cold xs',
-    '!test md 1 1 cats',
-    '!test sm 0 1 cats',
-    '!test sm 50 2 cats'
+    '!cold xs 1 1 cats ::go',
+    '!cold run-1 xs 1 1 cats',
+    '!test md 1 1 cats ::go',
+    '!test sm 0 1 cats ::go',
+    '!test sm 50 2 cats ::go'
   ])('treats an incomplete or invalid experiment as pending: %s', query => {
     expect(parseInlineQuery(query)).toEqual({ kind: 'pending-experiment' })
   })
