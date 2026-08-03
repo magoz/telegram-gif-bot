@@ -14,10 +14,20 @@ export const TelegramInlineQuery = Schema.Struct({
 
 export type TelegramInlineQuery = typeof TelegramInlineQuery.Type
 
+const TelegramAnimation = Schema.Struct({
+  file_id: Schema.String,
+  file_unique_id: Schema.String,
+  width: Schema.Number,
+  height: Schema.Number,
+  duration: Schema.Number,
+  file_size: Schema.optionalKey(Schema.Number)
+})
+
 const TelegramMessage = Schema.Struct({
   message_id: Schema.Number,
   chat: Schema.Struct({ id: Schema.Number }),
-  text: Schema.optionalKey(Schema.String)
+  text: Schema.optionalKey(Schema.String),
+  animation: Schema.optionalKey(TelegramAnimation)
 })
 
 export const TelegramUpdate = Schema.Struct({

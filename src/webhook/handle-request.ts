@@ -30,8 +30,18 @@ export const handleRequest = (request: Request) => {
       yield* handleInlineQuery(update.inline_query)
     }
 
-    if (update.message !== undefined && isStartCommand(update.message.text)) {
-      yield* telegram.sendStartMessage(update.message.chat.id)
+    if (update.message !== undefined) {
+      if (isStartCommand(update.message.text)) {
+        yield* telegram.sendStartMessage(update.message.chat.id)
+      }
+
+      if (update.message.animation !== undefined) {
+        yield* Effect.logInfo('Telegram cached animation candidate', {
+          chatId: update.message.chat.id,
+          messageId: update.message.message_id,
+          ...update.message.animation
+        })
+      }
     }
 
     return jsonResponse({ ok: true }, 200)

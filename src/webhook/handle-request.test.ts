@@ -14,6 +14,46 @@ it('recognizes private and addressed start commands', () => {
   assert.strictEqual(isStartCommand(undefined), false)
 })
 
+it.effect('accepts animation messages for cached file ID capture', () => {
+  const telegram: TelegramShape = {
+    authenticateWebhook: secret => secret === 'test-secret',
+    answerInlineQuery: () => Effect.die(new Error('Unexpected inline answer')),
+    sendStartMessage: () => Effect.die(new Error('Unexpected start message'))
+  }
+  const klipy: KlipyShape = {
+    search: () => Effect.die(new Error('Unexpected search')),
+    trending: () => Effect.die(new Error('Unexpected trending request'))
+  }
+  const TestLayer = Layer.merge(Layer.succeed(Klipy, klipy), Layer.succeed(Telegram, telegram))
+  const request = new Request('https://example.com/api/telegram', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-telegram-bot-api-secret-token': 'test-secret'
+    },
+    body: JSON.stringify({
+      update_id: 1,
+      message: {
+        message_id: 2,
+        chat: { id: 42 },
+        animation: {
+          file_id: 'telegram-file-id',
+          file_unique_id: 'telegram-unique-id',
+          width: 160,
+          height: 90,
+          duration: 2,
+          file_size: 12345
+        }
+      }
+    })
+  })
+
+  return Effect.gen(function* () {
+    const response = yield* handleRequest(request)
+    assert.strictEqual(response.status, 200)
+  }).pipe(Effect.provide(TestLayer))
+})
+
 it.effect('answers a start command with the search launcher', () => {
   let startChatId: number | undefined
 
