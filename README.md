@@ -142,4 +142,9 @@ the first 50 results, and diagnostic answers never paginate. Each diagnostic res
 rendition-specific ID, and the server logs its KLIPY ID, URL, dimensions, and byte size.
 
 These commands are intentionally capable of reproducing the Telegram macOS crash. Begin with one
-result and increase geometrically only after each previous case is stable.
+result and increase geometrically only after each previous case is stable. Controlled testing found
+that two exact `sm.gif` URL sets crashed when newly introduced media were fetched, then worked
+unchanged after those URLs had loaded independently. This rules out a deterministic file, count, or
+simple byte/frame/pixel threshold and identifies Telegram Mac's concurrent cold `MediaBox` fetch/cache
+path as the practical trigger. Normal searches remain on `xs.gif` because that rendition has stayed
+stable even with 50 results.

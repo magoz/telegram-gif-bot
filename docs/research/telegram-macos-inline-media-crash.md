@@ -11,7 +11,7 @@ The local Telegram crash reports show a deterministic **stack overflow / excessi
 
 There is also one concrete defect in the original payloads: some KLIPY MP4 renditions contain a silent AAC track, while Telegram defines `InlineQueryResultMpeg4Gif` as H.264/MPEG-4 AVC **without sound**. That should be fixed, but the crash stack does not prove that it is the recursion trigger.
 
-The current mitigation—returning KLIPY's smallest actual GIF rendition as `InlineQueryResultGif`—has shown **no crashes in local testing**, including answers containing the Telegram maximum of 50 results. A controlled follow-up changed only the sent rendition from `xs.gif` to `sm.gif`; the animated gallery still worked, but Telegram Mac crashed again. This establishes that result count alone is not the trigger and that keeping the fetched animation small is important. The observation period is still short and does not prove the Telegram client bug is fixed.
+The current mitigation—returning KLIPY's smallest actual GIF rendition as `InlineQueryResultGif`—has shown **no crashes in local testing**, including answers containing the Telegram maximum of 50 results. Controlled `sm.gif` tests isolated the practical trigger to Telegram's concurrent **cold remote-media fetch/cache path**: two exact URL sets crashed when newly introduced media were fetched, then worked unchanged after those same URLs had loaded independently. Result count, individual malformed files, total encoded bytes, frame count, duration, and decoded pixel workload do not independently predict the crash. Larger renditions increase exposure to the bug, while `xs.gif` has remained below the observed risk boundary.
 
 ## Outcome update: working mitigation
 
@@ -32,9 +32,31 @@ Commits recording the experiments:
 
 - `d40ff01`: remove the Mini App and return actual `xs.gif` inline results;
 - `b5443f9`: raise the page size from 8 to Telegram's maximum of 50;
-- `4160d60`: test `sm.gif` as the selected media; reverted after it crashed Telegram Mac.
+- `4160d60`: test `sm.gif` as the selected media; reverted after it crashed Telegram Mac;
+- `e18a9fe`: add bounded `!test` queries with rendition selection, deterministic subsets, unique result IDs, and media metadata logging.
 
 During testing, `cache_time` is `0` so repeated queries exercise the current payload instead of an older cached answer.
+
+### Controlled cold/warm-cache findings
+
+The diagnostic query mode held the search, item positions, result type, and JPEG thumbnails constant while varying rendition, subset, and cache state. Key observations:
+
+| Test                                                             | Static metrics                                  | Result  |
+| ---------------------------------------------------------------- | ----------------------------------------------- | ------- |
+| `cats`, `sm`, positions 1–3                                      | 3.446 MB, 138 frames, 4.94M decoded pixels      | Worked  |
+| `cats`, `sm`, positions 1–4 with newly introduced media          | 3.742 MB, 150 frames, 5.52M pixels              | Crashed |
+| `cats`, `sm`, positions 2–5                                      | 3.398 MB, 140 frames, 5.30M pixels              | Worked  |
+| `cats`, `sm`, positions 3–7                                      | 3.441 MB, 151 frames, 5.79M pixels              | Worked  |
+| `cats`, `xs`, positions 1–4                                      | 0.862 MB, same 150 frames and durations as `sm` | Worked  |
+| `cats`, `sm`, positions 1–4 after all four URLs were warm        | Identical to the earlier crashing payload       | Worked  |
+| `dogs`, `sm`, positions 1–4                                      | 3.001 MB, 149 frames, 5.36M pixels              | Worked  |
+| `dogs`, `sm`, positions 1–5 when position 5 was newly introduced | 3.097 MB, 153 frames, 5.58M pixels              | Crashed |
+| `dogs`, `sm`, position 5 alone                                   | 0.096 MB, 4 frames, 0.22M pixels                | Worked  |
+| `dogs`, `sm`, positions 1–5 after position 5 was warm            | Identical to the earlier crashing payload       | Worked  |
+
+The `cats` and `dogs` crashes produced reports at 21:16 and 21:28 on August 3. Both were again `EXC_BAD_ACCESS` / `SIGBUS` stack-guard failures on `MediaBox-Data`.
+
+These comparisons rule out a deterministic malformed asset or a simple threshold based on count, compressed bytes, frames, duration, or decoded pixels. The same remote URLs changing from crash to success after warming is direct evidence that fetch/cache timing and synchronous media-resource recursion are essential to the trigger.
 
 ## Original crashing payload
 
@@ -81,7 +103,7 @@ The seven reports in `~/Library/Logs/DiagnosticReports/Telegram-*.ips` from July
 - faulting dispatch queue: `MediaBox-Data`
 - the same repeating Telegram binary frame offsets, including `0x1a7b130`, `0x1a59dd4`, `0x1a53a80`, and `0x1a72b6c`
 
-Four additional reports were recorded on August 2–3. The latest, at 20:01 on August 3 before the actual-GIF deployment, again faulted on `MediaBox-Data` with the same stack-guard failure. No new crash report appeared during the subsequent 8-result and 50-result `xs.gif` tests.
+Four additional reports were recorded on August 2–3 before the actual-GIF deployment. The latest of those, at 20:01 on August 3, again faulted on `MediaBox-Data` with the same stack-guard failure. No new crash report appeared during the subsequent 8-result and 50-result `xs.gif` tests. Controlled `sm.gif` experiments later produced matching `MediaBox-Data` stack-guard crashes at 21:16 and 21:28; both exact payloads worked after their media URLs were warm.
 
 Telegram's source creates its media-data queue with exactly the name `MediaBox-Data`.[^mediabox-source] This places the failure in Telegram's media resource/cache pipeline, before or around file completion, rather than in a conventional video decoder crash.
 
@@ -141,7 +163,7 @@ This is a point-in-time sample, not a guarantee for KLIPY's entire or future cat
 
 ### 1. Telegram 12.9 native macOS `MediaBox` synchronous recursion — confirmed client bug
 
-This is directly supported by the local crash reports and an independent `@GiphyBot` report with the same binary UUID and recurring offsets.[^exact-macos-issue] Reducing from 24 remote MP4 results to 8 lowered load but still crashed. Conversely, 50 actual-GIF results remained stable in the observed tests, which weakens aggregate result count as the sole explanation and points more strongly to the remote MP4 ingestion path.
+This is directly supported by the local crash reports, controlled cold/warm-cache experiments, and an independent `@GiphyBot` report with the same binary UUID and recurring offsets.[^exact-macos-issue] Reducing from 24 remote MP4 results to 8 still crashed. Fifty `xs.gif` results remained stable, while selected `sm.gif` groups crashed only when media were newly introduced and then worked unchanged once warm. This rules out result count and the MP4 format as sole explanations and directly implicates remote fetch/cache state.
 
 The independent report also identifies the likely source mechanism:
 
@@ -165,9 +187,9 @@ A current Telegram iOS bug report traces a permanent GIF-panel hang to non-4:2:0
 
 That is a real compatibility hazard for unsanitized third-party MP4s, but all 32 current KLIPY samples were `yuv420p`. It does not explain these reproductions unless another query returns a different rendition.
 
-### 4. File size, dimensions, or MP4 atom order — low confidence
+### 4. Static media properties — ruled out as sole causes
 
-The audited files are small, dimensions match metadata, all decode, and all are fast-start compatible. One malformed catalog item outside the sample remains possible, but these properties do not fit the repeated `MediaBox-Data` recursion as well as parallel resource handling does.
+The audited files decode successfully and their declared dimensions match. Controlled groups crossed in both directions: a working group had more frames and decoded pixels than a crashing group, and a 3.097 MB group crashed while larger 3.398–3.446 MB groups worked. Individual members of each crashing group also worked alone. Most importantly, both exact crashing URL sets worked after warming. Size and complexity can affect timing and probability, but no measured static property independently causes the failure.
 
 ## Controlled isolation protocol
 
@@ -263,6 +285,8 @@ Also post the issue link in Telegram's official native-macOS beta/report chat, b
 | G    |            8 | JPEG-only article/photo results                 | Deferred; determine whether thumbnail fan-out alone triggers it |
 | H    |            8 | cached Telegram `file_id` animations            | Deferred; separate remote fetching from animation playback      |
 | I    |           50 | remote `sm.gif` as `gif` + JPEG thumbnail       | Failed: animated previews loaded, then Telegram Mac crashed     |
+| J    |          1–5 | controlled cold `sm.gif` subsets                | Mixed: two subsets crashed only while media were newly fetched  |
+| K    |          4–5 | exact previously crashing `sm.gif` subsets warm | Passed unchanged after every URL had loaded independently       |
 
 Do not rely on Telegram's five-minute inline cache while testing: change result IDs or temporarily set a very low cache time so each case is actually refreshed.
 
