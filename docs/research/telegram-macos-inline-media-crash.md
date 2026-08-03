@@ -34,6 +34,8 @@ Commits recording the successful change:
 
 During testing, `cache_time` is `0` so repeated queries exercise the current payload instead of an older cached answer.
 
+A follow-up experiment now uses `sm.gif` as `gif_url` to improve the animation sent after selection, while retaining `sm.jpg` as the static thumbnail. Telegram does not provide a guaranteed GIF-only mechanism for a low-resolution animated preview and a separate high-resolution send: GIF/JPEG thumbnails are documented as static, while animated thumbnails must be MPEG-4. The client may therefore fetch `sm.gif` to animate the gallery as well as to send it. This experiment must be compared against the confirmed-stable `xs.gif` baseline.
+
 ## Original crashing payload
 
 The original `src/inline-query/map-result.ts` mapping sent:
@@ -47,9 +49,9 @@ The thumbnail fields were valid: Telegram permits JPEG thumbnails and makes `mpe
 
 Telegram's own GIF documentation likewise says Telegram GIFs are soundless H.264 MPEG-4 videos and that uploaded GIF images are converted to MPEG-4.[^telegram-gifs]
 
-## Current working payload
+## Confirmed stable payload and current experiment
 
-The bot now requests `gif,jpg` from KLIPY and maps each item to:
+The confirmed-stable payload requests `gif,jpg` from KLIPY and maps each item to:
 
 - `type: "gif"` (`InlineQueryResultGif`);
 - KLIPY `file.xs.gif` as `gif_url`;
@@ -57,7 +59,7 @@ The bot now requests `gif,jpg` from KLIPY and maps each item to:
 - KLIPY `file.sm.jpg` as a static JPEG thumbnail;
 - up to 50 results per answer, with normal offset pagination.[^bot-api-gif]
 
-This keeps the animated native inline gallery and the normal one-tap send behavior while avoiding KLIPY's provider MP4 stream layout and audio-track defect.
+The current higher-quality experiment changes only `gif_url` and its dimensions from `file.xs.gif` to `file.sm.gif`. This keeps the animated native inline gallery and normal one-tap send behavior while avoiding KLIPY's provider MP4 stream layout and audio-track defect. It does not guarantee that Telegram previews the smaller rendition; the Bot API uses `gif_url` as the selected media and permits only MPEG-4 thumbnails to be animated.
 
 ## Local crash evidence
 
@@ -169,7 +171,7 @@ The audited files are small, dimensions match metadata, all decode, and all are 
 
 ### Keep and monitor the current mitigation
 
-Continue using KLIPY `file.xs.gif` through `InlineQueryResultGif` with a static JPEG thumbnail. This is currently the best combination of native inline UX and observed stability.
+Test KLIPY `file.sm.gif` through `InlineQueryResultGif` with the existing static JPEG thumbnail. Compare sent quality, gallery loading, blank slots, and crash behavior against the confirmed-stable `xs.gif` baseline. Revert to `xs.gif` immediately if crashes or unacceptable loading return.
 
 Before treating the result as conclusive:
 
@@ -236,6 +238,7 @@ Also post the issue link in Telegram's official native-macOS beta/report chat, b
 | F    |            1 | fixed `sm.mp4` with silent AAC                  | Deferred; isolate audio-track effect                            |
 | G    |            8 | JPEG-only article/photo results                 | Deferred; determine whether thumbnail fan-out alone triggers it |
 | H    |            8 | cached Telegram `file_id` animations            | Deferred; separate remote fetching from animation playback      |
+| I    |           50 | remote `sm.gif` as `gif` + JPEG thumbnail       | In progress; test higher-quality sends and gallery stability    |
 
 Do not rely on Telegram's five-minute inline cache while testing: change result IDs or temporarily set a very low cache time so each case is actually refreshed.
 

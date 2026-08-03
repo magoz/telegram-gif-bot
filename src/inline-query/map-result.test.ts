@@ -16,6 +16,12 @@ const gif: KlipyGif = {
       }
     },
     sm: {
+      gif: {
+        url: 'https://static.klipy.com/hello-small.gif',
+        width: 320,
+        height: 180,
+        size: 100
+      },
       jpg: {
         url: 'https://static.klipy.com/hello-small.jpg',
         width: 320,
@@ -27,13 +33,13 @@ const gif: KlipyGif = {
 }
 
 describe('KLIPY GIF mapping', () => {
-  it('uses the extra-small GIF with a static JPEG thumbnail', () => {
+  it('sends the small GIF with a static JPEG thumbnail', () => {
     expect(mapKlipyGif(gif)).toEqual({
       type: 'gif',
       id: '42',
-      gif_url: 'https://static.klipy.com/hello-extra-small.gif',
-      gif_width: 160,
-      gif_height: 90,
+      gif_url: 'https://static.klipy.com/hello-small.gif',
+      gif_width: 320,
+      gif_height: 180,
       thumbnail_url: 'https://static.klipy.com/hello-small.jpg',
       thumbnail_mime_type: 'image/jpeg',
       title: 'Hello'
