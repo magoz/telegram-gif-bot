@@ -126,3 +126,20 @@ results, whereas the previous remote-MP4 payload crashed at both 24 and 8 result
 confirming that Telegram fetches `gif_url` for animated previews. See
 [`docs/research/telegram-macos-inline-media-crash.md`](docs/research/telegram-macos-inline-media-crash.md)
 for the evidence and experiment history.
+
+### Controlled crash experiments
+
+Normal searches always use the confirmed-stable `xs.gif` rendition. A diagnostic query can select a
+fixed subset from the first KLIPY page without changing the normal bot behavior:
+
+```text
+!test <xs|sm> <start> <count> <search query>
+```
+
+For example, `!test sm 1 1 cats` returns only the first `cats` result using `sm.gif`, while
+`!test xs 1 1 cats` returns the same item using `xs.gif`. `start` and `count` are 1-based, bounded to
+the first 50 results, and diagnostic answers never paginate. Each diagnostic result receives a fresh
+rendition-specific ID, and the server logs its KLIPY ID, URL, dimensions, and byte size.
+
+These commands are intentionally capable of reproducing the Telegram macOS crash. Begin with one
+result and increase geometrically only after each previous case is stable.

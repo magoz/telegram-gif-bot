@@ -17,6 +17,7 @@ describe('KLIPY response schema', () => {
                 gif: { url: 'https://cdn.example/42-xs.gif', width: 160, height: 90, size: 25 }
               },
               sm: {
+                gif: { url: 'https://cdn.example/42-sm.gif', width: 320, height: 180, size: 100 },
                 jpg: { url: 'https://cdn.example/42-sm.jpg', width: 320, height: 180, size: 5 }
               }
             }
@@ -29,6 +30,7 @@ describe('KLIPY response schema', () => {
     })
 
     expect(response.data.data[0].file.xs.gif.url).toBe('https://cdn.example/42-xs.gif')
+    expect(response.data.data[0].file.sm.gif.url).toBe('https://cdn.example/42-sm.gif')
     expect(response.data.data[0].file.sm.jpg.url).toBe('https://cdn.example/42-sm.jpg')
   })
 })

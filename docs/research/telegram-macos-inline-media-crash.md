@@ -169,6 +169,28 @@ That is a real compatibility hazard for unsanitized third-party MP4s, but all 32
 
 The audited files are small, dimensions match metadata, all decode, and all are fast-start compatible. One malformed catalog item outside the sample remains possible, but these properties do not fit the repeated `MediaBox-Data` recursion as well as parallel resource handling does.
 
+## Controlled isolation protocol
+
+Normal inline searches remain on the confirmed-stable `xs.gif` payload. Diagnostic queries use this syntax:
+
+```text
+!test <xs|sm> <start 1-50> <count 1-50> <search query>
+```
+
+The diagnostic mode always requests KLIPY page 1, selects the specified contiguous subset, disables pagination, gives every result a rendition-and-position-specific ID, and logs each selected KLIPY ID, URL, dimensions, and declared byte size. Incomplete or invalid `!test` commands return no media instead of accidentally running an uncontrolled search.
+
+Use one fixed search term and proceed in this order:
+
+1. **Control:** `!test xs 1 1 cats`, then `!test xs 1 50 cats`.
+2. **Single-item rendition:** `!test sm 1 1 cats`. If it crashes, compare `xs` and `sm` for that same position and inspect the downloaded files.
+3. **Individual-item scan:** test `sm` with count 1 and starts 2–50. This separates a catalog-specific malformed asset from aggregate load.
+4. **Concurrency threshold:** if individual `sm` items are stable, test start 1 with counts 2, 4, 8, 16, 32, and 50. Stop at the first crash.
+5. **Byte-load versus count:** use logged media sizes to compare equal-count subsets with low and high aggregate bytes.
+6. **Cache:** repeat each boundary case once warm and once after clearing Telegram's media cache or using previously unseen result IDs.
+7. **Thumbnail:** only after establishing a repeatable boundary, hold the exact media set fixed and vary the thumbnail. The first `xs`/`sm` comparison already held the JPEG thumbnail constant, so this is lower priority.
+
+This protocol can distinguish item-specific failure, rendition-specific failure, result-count threshold, and aggregate-byte correlation. It cannot independently separate dimensions from encoding complexity without generating controlled transcodes of the same source asset.
+
 ## Recommended next steps
 
 ### Keep and monitor the current mitigation
